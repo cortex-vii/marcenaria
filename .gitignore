@@ -1,3 +1,4 @@
+certs/
 /djangoapp/static/
 /djangoapp/media/
 /djangoapp/project/local_settings.py
