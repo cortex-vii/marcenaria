@@ -14,12 +14,12 @@ services:
     env_file:
       - ./.env
     depends_on:
-      - psqlservice01
+      - psqlservice
     networks:
-      - docscloud_network
+      - service_network
       
-  psqlservice01:
-    container_name: psqlservice01
+  psqlservice:
+    container_name: psqlservice
     image: postgres:13-alpine
     volumes:
       - ./data/postgres/data:/var/lib/postgresql/data/
@@ -28,7 +28,7 @@ services:
     ports:
       - "${POSTGRES_PORT_CONTAINER}:${POSTGRES_PORT}" 
     networks:
-      - docscloud_network
+      - service_network
   
   nginx:
     container_name: nginx
@@ -45,8 +45,8 @@ services:
     depends_on:
       - djangoservice
     networks:
-      - docscloud_network
+      - service_network
 
 networks:
-  docscloud_network:
+  service_network:
     driver: bridge
