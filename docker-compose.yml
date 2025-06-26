@@ -29,7 +29,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: nginx_static_${CONTAINER_NAME_DJANGO}
+    container_name: ${CONTAINER_NAME_DJANGO}_static_service
     ports:
       - "8088:80" # Porta HTTP
     volumes:

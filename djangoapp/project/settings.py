@@ -58,6 +58,11 @@ CORS_ALLOWED_ORIGINS = [
 """ Permite todas as origens """
 CORS_ORIGIN_ALLOW_ALL = bool(int(os.getenv('CORS_ORIGIN_ALLOW_ALL', 0)))
 
+CSRF_TRUSTED_ORIGINS = [
+    h.strip() for h in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if h.strip()
+]
+
 
 # Application definition
 

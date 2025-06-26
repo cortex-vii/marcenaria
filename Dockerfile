@@ -1,5 +1,5 @@
 FROM python:3.11.3-alpine3.18
-LABEL mantainer="Turma de sistemas de informação I 2024"
+LABEL mantainer="Estrutura Córtex"
 
 # Essa variável de ambiente é usada para controlar se o Python deve 
 # gravar arquivos de bytecode (.pyc) no disco. 1 = Não, 0 = Sim
@@ -27,7 +27,9 @@ EXPOSE 8000
 # Agrupar os comandos em um único RUN pode reduzir a quantidade de camadas da 
 # imagem e torná-la mais eficiente.
 RUN python -m venv /venv && \
-  /venv/bin/pip install --upgrade pip && \  
+  /venv/bin/pip install --upgrade pip && \
+  # Instala su-exec, uma ferramenta para trocar de usuário
+  apk add --no-cache su-exec && \
   adduser --disabled-password --no-create-home duser && \
   mkdir -p /data/web/static && \
   mkdir -p /data/web/media && \
@@ -36,14 +38,16 @@ RUN python -m venv /venv && \
   chown -R duser:duser /data/web/media && \
   chmod -R 755 /data/web/static && \
   chmod -R 755 /data/web/media && \
+  # Garante que ambos os scripts são executáveis
   chmod -R +x /scripts
 
 # Adiciona a pasta scripts e venv/bin 
 # no $PATH do container.
 ENV PATH="/scripts:/venv/bin:$PATH"
 
-# Muda o usuário para duser
-USER duser
+# Define o entrypoint. Ele rodará como root, corrigirá as permissões
+# e então executará o CMD como o usuário 'duser'.
+ENTRYPOINT ["entrypoint.sh"]
 
-# Executa o arquivo scripts/commands.sh
+# Define o comando padrão que o entrypoint irá executar.
 CMD ["commands.sh"]
