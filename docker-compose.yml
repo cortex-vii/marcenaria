@@ -5,8 +5,6 @@ services:
     container_name: ${CONTAINER_NAME_DJANGO}
     build:
       context: .
-    ports:
-      - "${DJANGO_PORT_CONTAINER}:8000" 
     volumes:
       - ./djangoapp:/djangoapp
       - ./data/web/static:/data/web/static/
@@ -16,8 +14,8 @@ services:
     depends_on:
       - psqlservice
     networks:
-      - service_network
-      
+      - traefik_network # Conecta à rede do Traefik
+
   psqlservice:
     container_name: ${CONTAINER_NAME_PSQL}
     image: postgres:13-alpine
@@ -25,12 +23,37 @@ services:
       - ./data/postgres/data:/var/lib/postgresql/data/
     env_file:
       - ./.env
-    ports:
-      - "${POSTGRES_PORT_CONTAINER}:${POSTGRES_PORT}" 
+    # A porta não precisa ser exposta para o host, a menos que você queira acessá-la de fora do Docker
     networks:
-      - service_network
+      - traefik_network # Conecta à rede do Traefik
 
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_static_${CONTAINER_NAME_DJANGO}
+    ports:
+      - "8088:80" # Porta HTTP
+    volumes:
+      - ./data/web/static:/usr/share/nginx/html/static:ro
+      - ./data/web/media:/usr/share/nginx/html/media:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - djangoservice
+    networks:
+      - traefik_network # Conecta à rede do Traefik
+    labels:
+      - "traefik.enable=true"
+      # --- Roteador ---
+      - "traefik.http.routers.${LABELTRAEFIK}-main.rule=Host(`${SUBDOMINIO}`)"
+      - "traefik.http.routers.${LABELTRAEFIK}-main.entrypoints=websecure"
+      # --- TLS (SSL) ---
+      - "traefik.http.routers.${LABELTRAEFIK}-main.tls=true"
+      - "traefik.http.routers.${LABELTRAEFIK}-main.tls.certresolver=myresolver"
+      # --- Serviço (Destino) ---
+      # Adicione esta linha para dizer ao Traefik para onde enviar o tráfego
+      - "traefik.http.services.${LABELTRAEFIK}-main.loadbalancer.server.port=80"
 
 networks:
-  service_network:
-    driver: bridge
+  traefik_network:
+    external: true
+
+
