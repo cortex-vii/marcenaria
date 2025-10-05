@@ -4,7 +4,9 @@ from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.admin.sites import site as admin_site
 from django.http import JsonResponse
-from .models import Orcamento, Ambiente, TipoPeca, Componente
+from django.utils import timezone
+from decimal import Decimal
+from .models import Orcamento, Ambiente, TipoPeca, Componente, Movel
 from .utils.rule_manager import RuleManager
 import json
 
@@ -44,8 +46,10 @@ def orcamento_create(request):
         if status not in [choice[0] for choice in Orcamento.STATUS_CHOICES]:
             errors['status'] = 'Status inválido'
             
-        # Validar ambientes
+        # Validar e processar ambientes
         ambientes_data = []
+        valor_total = Decimal('0.00')
+        
         try:
             ambientes_parsed = json.loads(ambientes_json)
             print(f"Ambientes data parsed: {ambientes_parsed}")
@@ -53,24 +57,96 @@ def orcamento_create(request):
             if not isinstance(ambientes_parsed, list):
                 errors['ambientes'] = 'Formato de ambientes inválido'
             else:
-                for item in ambientes_parsed:
-                    print(f"Processando item: {item}")
-                    if isinstance(item, dict) and 'nome' in item:
-                        nome = str(item['nome']).strip()
-                        if nome:
-                            # Incluir também os móveis e peças na validação
-                            ambiente_data = {
-                                'nome': nome,
-                                'moveis': item.get('moveis', [])
+                for ambiente_item in ambientes_parsed:
+                    print(f"Processando ambiente: {ambiente_item}")
+                    
+                    if isinstance(ambiente_item, dict) and 'nome' in ambiente_item:
+                        nome_ambiente = str(ambiente_item['nome']).strip()
+                        if nome_ambiente:
+                            moveis_processados = []
+                            
+                            # Processar móveis do ambiente
+                            for movel_item in ambiente_item.get('moveis', []):
+                                print(f"Processando móvel: {movel_item}")
+                                
+                                if isinstance(movel_item, dict) and 'nome' in movel_item:
+                                    nome_movel = str(movel_item['nome']).strip()
+                                    if nome_movel:
+                                        pecas_processadas = []
+                                        
+                                        # Processar peças do móvel
+                                        for peca_item in movel_item.get('pecas', []):
+                                            print(f"Processando peça: {peca_item}")
+                                            
+                                            if isinstance(peca_item, dict):
+                                                # Obter o componente do banco
+                                                componente_id = peca_item.get('componente_id')
+                                                if componente_id:
+                                                    try:
+                                                        componente = Componente.objects.get(id=componente_id)
+                                                        
+                                                        # Executar cálculo usando RuleManager
+                                                        tipo_peca_codigo = peca_item.get('tipo_codigo')
+                                                        dados_calculo = peca_item.get('dados_calculo', {})
+                                                        
+                                                        resultado_calculo = RuleManager.calcular(
+                                                            tipo_peca_codigo, 
+                                                            dados_calculo, 
+                                                            componente
+                                                        )
+                                                        
+                                                        # Calcular custo total
+                                                        custo_total = Decimal('0.00')
+                                                        if resultado_calculo.get('sucesso'):
+                                                            quantidade_utilizada = resultado_calculo.get('quantidade_utilizada', 0)
+                                                            custo_unitario = componente.custo_unitario
+                                                            custo_total = Decimal(str(quantidade_utilizada)) * custo_unitario
+                                                            resultado_calculo['custo_total'] = float(custo_total)
+                                                            valor_total += custo_total
+                                                        
+                                                        # Estrutura final da peça
+                                                        peca_processada = {
+                                                            'tipo_codigo': tipo_peca_codigo,
+                                                            'tipo_nome': peca_item.get('tipo_nome'),
+                                                            'componente_id': componente_id,
+                                                            'componente_nome': peca_item.get('componente_nome'),
+                                                            'componente_preco_unitario': float(componente.custo_unitario),
+                                                            'dados_calculo': dados_calculo,
+                                                            'resultado_calculo': resultado_calculo,
+                                                            'resumo': peca_item.get('resumo')
+                                                        }
+                                                        
+                                                        pecas_processadas.append(peca_processada)
+                                                        print(f"Peça processada com custo: R$ {custo_total}")
+                                                        
+                                                    except Componente.DoesNotExist:
+                                                        print(f"Componente {componente_id} não encontrado")
+                                                        continue
+                                        
+                                        # Estrutura final do móvel
+                                        movel_processado = {
+                                            'nome': nome_movel,
+                                            'pecas': pecas_processadas
+                                        }
+                                        moveis_processados.append(movel_processado)
+                            
+                            # Estrutura final do ambiente
+                            ambiente_processado = {
+                                'nome': nome_ambiente,
+                                'moveis': moveis_processados
                             }
-                            ambientes_data.append(ambiente_data)
-                            print(f"Ambiente adicionado: '{nome}' com {len(ambiente_data['moveis'])} móveis")
+                            ambientes_data.append(ambiente_processado)
+                            print(f"Ambiente processado: '{nome_ambiente}' com {len(moveis_processados)} móveis")
                             
         except json.JSONDecodeError as e:
             print(f"Erro JSON: {e}")
             errors['ambientes'] = 'JSON de ambientes inválido'
+        except Exception as e:
+            print(f"Erro no processamento: {e}")
+            errors['ambientes'] = f'Erro no processamento dos dados: {str(e)}'
         
         print(f"Ambientes finais: {len(ambientes_data)} ambientes")
+        print(f"Valor total calculado: R$ {valor_total}")
         print(f"Errors: {errors}")
         
         # Se há erros, renderizar novamente com erros
@@ -89,14 +165,24 @@ def orcamento_create(request):
             }
             return render(request, 'admin/marcenaria/orcamento/new.html', context, status=400)
         
-        # Criar orçamento
+        # Estrutura final dos dados do orçamento
+        dados_orcamento_final = {
+            'ambientes': ambientes_data,
+            'valor_total': float(valor_total),
+            'versao': '1.0',
+            'data_calculo': timezone.now().isoformat()
+        }
+        
+        # Criar orçamento com dados JSON
         orcamento = Orcamento.objects.create(
             cliente=cliente,
-            status=status
+            status=status,
+            dados_orcamento=dados_orcamento_final,
+            valor_total=valor_total
         )
-        print(f"Orçamento criado: {orcamento.numero}")
+        print(f"Orçamento criado: {orcamento.numero} - Valor: R$ {orcamento.valor_total}")
         
-        # Criar ambientes
+        # Criar ambientes básicos (para compatibilidade)
         ambientes_criados = 0
         for ambiente_data in ambientes_data:
             ambiente = Ambiente.objects.create(
@@ -106,11 +192,15 @@ def orcamento_create(request):
             print(f"Ambiente criado: {ambiente.nome}")
             ambientes_criados += 1
             
-            # Aqui você pode adicionar lógica para processar móveis e peças
-            # Por enquanto vamos só criar os ambientes
-            # TODO: Implementar criação de móveis e peças
+            # Criar móveis básicos (para compatibilidade)
+            for movel_data in ambiente_data.get('moveis', []):
+                movel = Movel.objects.create(
+                    ambiente=ambiente,
+                    nome=movel_data['nome']
+                )
+                print(f"Móvel criado: {movel.nome}")
         
-        messages.success(request, f'Orçamento {orcamento.numero} criado com sucesso com {ambientes_criados} ambiente(s).')
+        messages.success(request, f'Orçamento {orcamento.numero} criado com sucesso! Valor total: R$ {orcamento.valor_total:.2f}')
         return redirect(reverse('admin:marcenaria_orcamento_change', args=[orcamento.pk]))
     
     else:

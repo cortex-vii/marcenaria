@@ -328,3 +328,193 @@
   font-size: 11px;
   margin-top: 2px;
 }
+
+/* Painel de resumo do orçamento */
+.resumo-orcamento {
+  position: sticky;
+  top: 20px;
+  background: #fff;
+  border: 2px solid #2563eb;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.resumo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.resumo-header h3 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 18px;
+}
+
+.valor-total {
+  font-size: 24px;
+  font-weight: bold;
+  color: #059669;
+}
+
+.resumo-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 8px;
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.stat-number {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.resumo-detalhes {
+  max-height: 200px;
+  overflow-y: auto;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 8px;
+}
+
+.ambiente-resumo {
+  margin-bottom: 8px;
+  padding: 6px;
+  background: #f3f4f6;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.ambiente-resumo-nome {
+  font-weight: bold;
+  color: #374151;
+}
+
+.movel-resumo {
+  margin-left: 12px;
+  margin-top: 4px;
+  color: #6b7280;
+}
+
+/* Indicadores de cálculo nas peças */
+.peca-calculo {
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.peca-custo {
+  font-weight: bold;
+  color: #059669;
+}
+
+.peca-quantidade {
+  color: #6b7280;
+}
+
+/* Indicador de carregamento */
+.loading {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 50%;
+  border-top-color: #2563eb;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: 4px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Modal maior para peças */
+.modal-content.modal-large {
+  max-width: 800px;
+}
+
+/* Resultado do cálculo no modal */
+.calculo-resultado {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f9ff;
+  border: 1px solid #7dd3fc;
+  border-radius: 6px;
+  display: none;
+}
+
+.calculo-sucesso {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.calculo-erro {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.calculo-titulo {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #1f2937;
+}
+
+.calculo-detalhes {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.calculo-custo {
+  font-size: 16px;
+  font-weight: bold;
+  color: #059669;
+  margin-top: 8px;
+}
+
+/* Layout responsivo */
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .resumo-orcamento {
+    position: relative;
+    order: -1;
+  }
+}
+
+/* Botão de impressão */
+#btnImprimir {
+  background: #059669;
+  color: white;
+}
+
+#btnImprimir:hover {
+  background: #047857;
+}

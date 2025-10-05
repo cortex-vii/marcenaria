@@ -21,80 +21,119 @@
 <div id="content-main">
   <h1>Adicionar Orçamento</h1>
 
-  <form method="post">
-    {% csrf_token %}
+  <div class="layout-grid">
+    <!-- Coluna principal -->
+    <div class="main-content">
+      <form method="post" id="orcamentoForm">
+        {% csrf_token %}
 
-    <div class="section">
-      <h2>Informações Básicas</h2>
-      
-      <div class="form-row">
-        <label class="label" for="cliente">Cliente *</label>
-        <input type="text" 
-               id="cliente" 
-               name="cliente" 
-               class="input-field" 
-               value="{{ cliente|default:'' }}" 
-               placeholder="Nome do cliente"
-               required>
-        {% if errors.cliente %}
-          <div class="errorlist">{{ errors.cliente }}</div>
-        {% endif %}
-      </div>
-      
-      <div class="form-row">
-        <label class="label" for="status">Status</label>
-        <select id="status" name="status" class="input-field">
-          {% for value, label in status_choices %}
-            <option value="{{ value }}" {% if status == value %}selected{% endif %}>
-              {{ label }}
-            </option>
-          {% endfor %}
-        </select>
-        {% if errors.status %}
-          <div class="errorlist">{{ errors.status }}</div>
-        {% endif %}
-      </div>
+        <div class="section">
+          <h2>Informações Básicas</h2>
+          
+          <div class="form-row">
+            <label class="label" for="cliente">Cliente *</label>
+            <input type="text" 
+                   id="cliente" 
+                   name="cliente" 
+                   class="input-field" 
+                   value="{{ cliente|default:'' }}" 
+                   placeholder="Nome do cliente"
+                   required>
+            {% if errors.cliente %}
+              <div class="errorlist">{{ errors.cliente }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="form-row">
+            <label class="label" for="status">Status</label>
+            <select id="status" name="status" class="input-field">
+              {% for value, label in status_choices %}
+                <option value="{{ value }}" {% if status == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+              {% endfor %}
+            </select>
+            {% if errors.status %}
+              <div class="errorlist">{{ errors.status }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>Ambientes e Móveis</h2>
+          
+          <div class="amb-add">
+            <input type="text" 
+                   id="ambienteNome" 
+                   class="input-field" 
+                   placeholder="Nome do ambiente" 
+                   style="max-width: 300px;">
+            <button type="button" class="btn btn-primary" id="btnAddAmbiente">
+              Adicionar ambiente
+            </button>
+          </div>
+          
+          <div class="help">
+            Adicione quantos ambientes quiser. Para cada ambiente, você poderá adicionar móveis e peças.
+          </div>
+          
+          <div id="ambientesContainer" class="ambientes-container">
+            <div class="empty-state">Nenhum ambiente adicionado</div>
+          </div>
+          
+          {% if errors.ambientes %}
+            <div class="errorlist">{{ errors.ambientes }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Campos hidden para dados JSON -->
+        <input type="hidden" name="ambientes_json" id="ambientesJson" value="{{ ambientes_json|default:'[]' }}">
+
+        <div class="submit-row toolbar">
+          <button type="submit" class="btn btn-primary">
+            Salvar Orçamento
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnImprimir">
+            🖨️ Imprimir Orçamento
+          </button>
+          <a class="btn btn-secondary" href="{{ changelist_url }}">
+            Cancelar
+          </a>
+        </div>
+      </form>
     </div>
 
-    <div class="section">
-      <h2>Ambientes e Móveis</h2>
-      
-      <div class="amb-add">
-        <input type="text" 
-               id="ambienteNome" 
-               class="input-field" 
-               placeholder="Nome do ambiente" 
-               style="max-width: 300px;">
-        <button type="button" class="btn btn-primary" id="btnAddAmbiente">
-          Adicionar ambiente
-        </button>
+    <!-- Painel de resumo -->
+    <div class="sidebar-content">
+      <div class="resumo-orcamento" id="resumoOrcamento">
+        <div class="resumo-header">
+          <h3>Resumo do Orçamento</h3>
+          <div class="valor-total" id="valorTotal">R$ 0,00</div>
+        </div>
+        
+        <div class="resumo-stats">
+          <div class="stat-item">
+            <div class="stat-number" id="totalAmbientes">0</div>
+            <div class="stat-label">Ambientes</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="totalMoveis">0</div>
+            <div class="stat-label">Móveis</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="totalPecas">0</div>
+            <div class="stat-label">Peças</div>
+          </div>
+        </div>
+        
+        <div class="resumo-detalhes" id="resumoDetalhes">
+          <div class="empty-state" style="margin: 0; padding: 20px 0; border: none;">
+            Nenhum item adicionado
+          </div>
+        </div>
       </div>
-      
-      <div class="help">
-        Adicione quantos ambientes quiser. Para cada ambiente, você poderá adicionar móveis e peças.
-      </div>
-      
-      <div id="ambientesContainer" class="ambientes-container">
-        <div class="empty-state">Nenhum ambiente adicionado</div>
-      </div>
-      
-      {% if errors.ambientes %}
-        <div class="errorlist">{{ errors.ambientes }}</div>
-      {% endif %}
     </div>
-
-    <!-- Campos hidden para dados JSON -->
-    <input type="hidden" name="ambientes_json" id="ambientesJson" value="{{ ambientes_json|default:'[]' }}">
-
-    <div class="submit-row toolbar">
-      <button type="submit" class="btn btn-primary">
-        Salvar Orçamento
-      </button>
-      <a class="btn btn-secondary" href="{{ changelist_url }}">
-        Cancelar
-      </a>
-    </div>
-  </form>
+  </div>
 
   <!-- Modal para adicionar móvel -->
   <div id="modalMovel" class="modal" style="display: none;">
@@ -120,7 +159,7 @@
   <!-- Modal para adicionar peça -->
   <div id="modalPeca" class="modal" style="display: none;">
     <div class="modal-overlay"></div>
-    <div class="modal-content">
+    <div class="modal-content modal-large">
       <div class="modal-header">
         <h3>Adicionar Peça</h3>
         <button type="button" class="modal-close" id="btnFecharModalPeca">&times;</button>
@@ -147,6 +186,13 @@
 
         <div id="camposCalculoContainer">
           <!-- Campos serão inseridos dinamicamente aqui -->
+        </div>
+
+        <!-- Resultado do cálculo -->
+        <div id="calculoResultado" class="calculo-resultado">
+          <div class="calculo-titulo">Resultado do Cálculo</div>
+          <div id="calculoDetalhes" class="calculo-detalhes"></div>
+          <div id="calculoCusto" class="calculo-custo"></div>
         </div>
       </div>
       <div class="modal-footer">

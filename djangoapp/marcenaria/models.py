@@ -74,6 +74,24 @@ class Orcamento(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='RASCUNHO', verbose_name="Status")
     data_validade = models.DateField(blank=True, null=True, verbose_name="Data de Validade")
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    
+    # Novo campo JSON para armazenar dados completos do orçamento
+    dados_orcamento = models.JSONField(
+        blank=True,
+        null=True,
+        verbose_name="Dados do Orçamento",
+        help_text="Estrutura completa do orçamento com ambientes, móveis, peças e cálculos"
+    )
+    
+    # Novo campo para valor total do orçamento
+    valor_total = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        verbose_name="Valor Total",
+        help_text="Valor total calculado do orçamento"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado em")
 
@@ -97,6 +115,53 @@ class Orcamento(models.Model):
                 self.numero = f'ORC-{timestamp}'
         
         super().save(*args, **kwargs)
+
+    def calcular_valor_total(self):
+        """
+        Calcula o valor total do orçamento baseado nos dados_orcamento
+        
+        Returns:
+            Decimal: Valor total calculado
+        """
+        if not self.dados_orcamento:
+            return Decimal('0.00')
+        
+        valor_total = Decimal('0.00')
+        
+        try:
+            ambientes = self.dados_orcamento.get('ambientes', [])
+            
+            for ambiente in ambientes:
+                moveis = ambiente.get('moveis', [])
+                
+                for movel in moveis:
+                    pecas = movel.get('pecas', [])
+                    
+                    for peca in pecas:
+                        resultado_calculo = peca.get('resultado_calculo', {})
+                        custo_total = resultado_calculo.get('custo_total', 0)
+                        
+                        if custo_total:
+                            valor_total += Decimal(str(custo_total))
+                            
+
+        except (TypeError, KeyError, ValueError) as e:
+            # Em caso de erro na estrutura JSON, retorna 0
+            print(f"Erro ao calcular valor total do orçamento {self.numero}: {e}")
+            valor_total = Decimal('0.00')
+        
+        return valor_total
+
+    def atualizar_valor_total(self):
+        """
+        Atualiza o campo valor_total baseado nos dados_orcamento
+        """
+        self.valor_total = self.calcular_valor_total()
+
+    @property
+    def valor_total_money(self):
+        """Retorna o valor total como objeto Money"""
+        return Money(self.valor_total, 'BRL')
 
     def __str__(self):
         return f"{self.numero} - {self.cliente}"

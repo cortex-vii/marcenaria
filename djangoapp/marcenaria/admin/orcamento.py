@@ -15,7 +15,7 @@ class OrcamentoAdmin(ModelAdmin):
     list_display = ['numero', 'cliente', 'status', 'get_total_ambientes', 'data_validade', 'created_at', 'updated_at']
     list_filter = ['status', 'data_validade', 'created_at', 'updated_at']
     search_fields = ['numero', 'cliente', 'descricao']
-    readonly_fields = ['numero', 'created_at', 'updated_at']
+    readonly_fields = ['numero', 'created_at', 'updated_at', 'valor_total']
 
     fieldsets = (
         ('Informações Básicas', {
@@ -30,10 +30,10 @@ class OrcamentoAdmin(ModelAdmin):
             'fields': ('observacoes',),
             'classes': ('wide',)
         }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',)
+        ('valor_total', {
+            'fields': ('valor_total',),
         }),
+  
     )
 
     list_per_page = 25
