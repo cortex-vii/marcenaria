@@ -1,0 +1,20 @@
+.field-altura, .field-largura, .field-profundidade,
+.field-comprimento, .field-volume_ml, .field-quantidade {
+    background-color: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+
+.fieldset h2 {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+fieldset[data-description] .description {
+    background-color: #e3f2fd;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 12px;
+}

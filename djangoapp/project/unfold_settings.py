@@ -44,6 +44,49 @@ UNFOLD = {
                 ],
             },
             {
+                "title": "Orçamentos",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Orçamentos",
+                        "icon": "description",
+                        "link": "/admin/marcenaria/orcamento/",
+                    },
+                    {
+                        "title": "Ambientes",
+                        "icon": "room",
+                        "link": "/admin/marcenaria/ambiente/",
+                    },
+
+                ],
+            },
+            {
+                "title": "Cadastros",
+                "separator": True,
+                "items": [
+                    {
+                        "title": "Componentes",
+                        "icon": "widgets",
+                        "link": "/admin/marcenaria/componente/",
+                    },
+                    {
+                        "title": "Tipos de Componentes",
+                        "icon": "construction",
+                        "link": "/admin/marcenaria/tipocomponente/",
+                    },
+                    {
+                        "title": "Tipos de Peças",
+                        "icon": "category",
+                        "link": "/admin/marcenaria/tipopeca/",
+                    },
+                    {
+                        "title": "Fornecedores",
+                        "icon": "business",
+                        "link": "/admin/marcenaria/fornecedor/",
+                    },
+                ],
+            },
+            {
                 "title": "User Management",
                 "separator": True,
                 "items": [

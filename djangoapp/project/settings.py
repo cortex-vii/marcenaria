@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     
     'accounts', 
+    'marcenaria',
 
 ]
 REST_FRAMEWORK = {
@@ -190,7 +191,14 @@ TIME_ZONE = 'America/Sao_Paulo'
 
 USE_I18N = True
 
+USE_L10N = True
+
 USE_TZ = True
+
+
+# Formatação de números
+USE_THOUSAND_SEPARATOR = True
+NUMBER_GROUPING = 3
 
 
 # Static files (CSS, JavaScript, Images)

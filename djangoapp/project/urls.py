@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
+    path('', include('marcenaria.urls', namespace='marcenaria')),
 ]
 
 if settings.DEBUG:
