@@ -1,5 +1,5 @@
-class FundoSimplesRule:
-    """Classe com as regras para calcular Fundo Simples"""
+class BaseEngrossadaRule:
+    """Classe com as regras para calcular Base Engrossada"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
@@ -12,7 +12,7 @@ class FundoSimplesRule:
             'type': 'number',
             'required': True,
             'min': 1,
-            'help': 'Quantas peças de fundo simples você precisa'
+            'help': 'Quantas peças de base engrossada você precisa'
         },
         {
             'name': 'altura',
@@ -32,15 +32,24 @@ class FundoSimplesRule:
             'step': 0.1,
             'help': 'Largura da peça em centímetros'
         },
+        {
+            'name': 'espessura_extra',
+            'label': 'Espessura extra (cm)',
+            'type': 'number',
+            'required': True,
+            'min': 0.1,
+            'step': 0.1,
+            'help': 'Espessura adicional para o engrossamento'
+        }
     ]
     
     @staticmethod
     def calcular(dados, componente):
         """
-        Calcula a quantidade de material necessária
+        Calcula a quantidade de material necessária para base engrossada
         
         Args:
-            dados (dict): Dicionário com quantidade, altura, largura
+            dados (dict): Dicionário com quantidade, altura, largura, espessura_extra
             componente (Componente): Componente selecionado
             
         Returns:
@@ -49,6 +58,7 @@ class FundoSimplesRule:
         quantidade = float(dados.get('quantidade', 0))
         altura = float(dados.get('altura', 0))
         largura = float(dados.get('largura', 0))
+        espessura_extra = float(dados.get('espessura_extra', 0))
         
         # Validações
         if quantidade <= 0:
@@ -57,31 +67,28 @@ class FundoSimplesRule:
             return {'erro': 'Altura deve ser maior que zero'}
         if largura <= 0:
             return {'erro': 'Largura deve ser maior que zero'}
+        if espessura_extra <= 0:
+            return {'erro': 'Espessura extra deve ser maior que zero'}
         
         # Converter cm para metros
         altura_m = altura / 100
         largura_m = largura / 100
+        espessura_extra_m = espessura_extra / 100
         
-        # Calcular área total necessária
-        area_por_peca = altura_m * largura_m
+        # Base engrossada = área base + área das bordas de engrossamento
+        area_base = altura_m * largura_m
+        # Bordas: 2 * (altura + largura) * espessura_extra
+        area_bordas = 2 * (altura_m + largura_m) * espessura_extra_m
+        area_por_peca = area_base + area_bordas
         area_total = area_por_peca * quantidade
-        
-        # Verificar se o componente tem área suficiente (se for chapa)
-        area_componente = 0
-        if componente.unidade_medida == 'QUADRADO':
-            area_componente = float(componente.altura * componente.largura)
-        
-        # Calcular quantas chapas são necessárias
-        chapas_necessarias = 0
-        if area_componente > 0:
-            chapas_necessarias = round(area_total / area_componente + 0.5)  # Arredonda para cima
         
         return {
             'sucesso': True,
+            'area_base': area_base,
+            'area_bordas': area_bordas,
             'area_por_peca': area_por_peca,
             'area_total': area_total,
-            'chapas_necessarias': chapas_necessarias,
             'quantidade_utilizada': area_total,
             'unidade': 'm²',
-            'resumo': f'{quantidade}x peças de {altura}cm x {largura}cm = {area_total:.4f} m²'
+            'resumo': f'{quantidade}x bases engrossadas de {altura}cm x {largura}cm (+{espessura_extra}cm) = {area_total:.4f} m²'
         }

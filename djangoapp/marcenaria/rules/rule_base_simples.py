@@ -1,5 +1,5 @@
-class FundoSimplesRule:
-    """Classe com as regras para calcular Fundo Simples"""
+class BaseSimplesRule:
+    """Classe com as regras para calcular Base Simples"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
@@ -12,7 +12,7 @@ class FundoSimplesRule:
             'type': 'number',
             'required': True,
             'min': 1,
-            'help': 'Quantas peças de fundo simples você precisa'
+            'help': 'Quantas peças de base simples você precisa'
         },
         {
             'name': 'altura',
@@ -31,7 +31,7 @@ class FundoSimplesRule:
             'min': 0.1,
             'step': 0.1,
             'help': 'Largura da peça em centímetros'
-        },
+        }
     ]
     
     @staticmethod

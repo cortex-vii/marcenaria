@@ -1,5 +1,5 @@
-class FundoSimplesRule:
-    """Classe com as regras para calcular Fundo Simples"""
+class LateralDuplaRule:
+    """Classe com as regras para calcular Lateral Dupla"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
@@ -8,11 +8,11 @@ class FundoSimplesRule:
     CAMPOS_NECESSARIOS = [
         {
             'name': 'quantidade',
-            'label': 'Quantidade de peças',
+            'label': 'Quantidade de laterais',
             'type': 'number',
             'required': True,
             'min': 1,
-            'help': 'Quantas peças de fundo simples você precisa'
+            'help': 'Quantas laterais duplas você precisa'
         },
         {
             'name': 'altura',
@@ -21,7 +21,7 @@ class FundoSimplesRule:
             'required': True,
             'min': 0.1,
             'step': 0.1,
-            'help': 'Altura da peça em centímetros'
+            'help': 'Altura da lateral em centímetros'
         },
         {
             'name': 'largura',
@@ -30,14 +30,14 @@ class FundoSimplesRule:
             'required': True,
             'min': 0.1,
             'step': 0.1,
-            'help': 'Largura da peça em centímetros'
-        },
+            'help': 'Largura da lateral em centímetros'
+        }
     ]
     
     @staticmethod
     def calcular(dados, componente):
         """
-        Calcula a quantidade de material necessária
+        Calcula a quantidade de material necessária para laterais duplas
         
         Args:
             dados (dict): Dicionário com quantidade, altura, largura
@@ -62,26 +62,15 @@ class FundoSimplesRule:
         altura_m = altura / 100
         largura_m = largura / 100
         
-        # Calcular área total necessária
-        area_por_peca = altura_m * largura_m
-        area_total = area_por_peca * quantidade
-        
-        # Verificar se o componente tem área suficiente (se for chapa)
-        area_componente = 0
-        if componente.unidade_medida == 'QUADRADO':
-            area_componente = float(componente.altura * componente.largura)
-        
-        # Calcular quantas chapas são necessárias
-        chapas_necessarias = 0
-        if area_componente > 0:
-            chapas_necessarias = round(area_total / area_componente + 0.5)  # Arredonda para cima
+        # Lateral dupla = 2x a área de uma lateral simples
+        area_por_lateral = altura_m * largura_m * 2
+        area_total = area_por_lateral * quantidade
         
         return {
             'sucesso': True,
-            'area_por_peca': area_por_peca,
+            'area_por_lateral': area_por_lateral,
             'area_total': area_total,
-            'chapas_necessarias': chapas_necessarias,
             'quantidade_utilizada': area_total,
             'unidade': 'm²',
-            'resumo': f'{quantidade}x peças de {altura}cm x {largura}cm = {area_total:.4f} m²'
+            'resumo': f'{quantidade}x laterais duplas de {altura}cm x {largura}cm = {area_total:.4f} m²'
         }

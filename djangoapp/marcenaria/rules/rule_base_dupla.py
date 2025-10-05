@@ -1,5 +1,5 @@
-class FundoSimplesRule:
-    """Classe com as regras para calcular Fundo Simples"""
+class BaseDuplaRule:
+    """Classe com as regras para calcular Base Dupla"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
@@ -12,7 +12,7 @@ class FundoSimplesRule:
             'type': 'number',
             'required': True,
             'min': 1,
-            'help': 'Quantas peças de fundo simples você precisa'
+            'help': 'Quantas peças de base dupla você precisa'
         },
         {
             'name': 'altura',
@@ -31,13 +31,13 @@ class FundoSimplesRule:
             'min': 0.1,
             'step': 0.1,
             'help': 'Largura da peça em centímetros'
-        },
+        }
     ]
     
     @staticmethod
     def calcular(dados, componente):
         """
-        Calcula a quantidade de material necessária
+        Calcula a quantidade de material necessária para base dupla
         
         Args:
             dados (dict): Dicionário com quantidade, altura, largura
@@ -62,8 +62,8 @@ class FundoSimplesRule:
         altura_m = altura / 100
         largura_m = largura / 100
         
-        # Calcular área total necessária
-        area_por_peca = altura_m * largura_m
+        # Base dupla = 2x a área de uma base simples
+        area_por_peca = altura_m * largura_m * 2
         area_total = area_por_peca * quantidade
         
         # Verificar se o componente tem área suficiente (se for chapa)
@@ -83,5 +83,5 @@ class FundoSimplesRule:
             'chapas_necessarias': chapas_necessarias,
             'quantidade_utilizada': area_total,
             'unidade': 'm²',
-            'resumo': f'{quantidade}x peças de {altura}cm x {largura}cm = {area_total:.4f} m²'
+            'resumo': f'{quantidade}x peças duplas de {altura}cm x {largura}cm = {area_total:.4f} m²'
         }

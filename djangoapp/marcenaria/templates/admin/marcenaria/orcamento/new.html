@@ -98,13 +98,19 @@
 
   <!-- Modal para adicionar móvel -->
   <div id="modalMovel" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
     <div class="modal-content">
-      <h3>Adicionar Móvel</h3>
-      <div class="form-row">
-        <label class="label" for="movelNome">Nome do Móvel</label>
-        <input type="text" id="movelNome" class="input-field" placeholder="Ex: Mesa de jantar, Armário">
+      <div class="modal-header">
+        <h3>Adicionar Móvel</h3>
+        <button type="button" class="modal-close" id="btnFecharModalMovel">&times;</button>
       </div>
-      <div class="modal-actions">
+      <div class="modal-body">
+        <div class="form-row">
+          <label class="label" for="movelNome">Nome do Móvel</label>
+          <input type="text" id="movelNome" class="input-field" placeholder="Ex: Mesa de jantar, Armário">
+        </div>
+      </div>
+      <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="btnSalvarMovel">Salvar</button>
         <button type="button" class="btn btn-secondary" id="btnCancelarMovel">Cancelar</button>
       </div>
@@ -113,33 +119,37 @@
 
   <!-- Modal para adicionar peça -->
   <div id="modalPeca" class="modal" style="display: none;">
+    <div class="modal-overlay"></div>
     <div class="modal-content">
-      <h3>Adicionar Peça</h3>
-      
-      <div class="form-row">
-        <label class="label" for="tipoPeca">Tipo de Peça</label>
-        <select id="tipoPeca" class="input-field">
-          <option value="">Selecione...</option>
-          {% for tipo in tipos_pecas %}
-            <option value="{{ tipo.codigo }}">{{ tipo.nome }}</option>
-          {% endfor %}
-        </select>
+      <div class="modal-header">
+        <h3>Adicionar Peça</h3>
+        <button type="button" class="modal-close" id="btnFecharModalPeca">&times;</button>
       </div>
-
-      <div id="componentesContainer" style="display: none;">
+      <div class="modal-body">
         <div class="form-row">
-          <label class="label" for="componentePeca">Componente</label>
-          <select id="componentePeca" class="input-field">
+          <label class="label" for="tipoPeca">Tipo de Peça</label>
+          <select id="tipoPeca" class="input-field">
             <option value="">Selecione...</option>
+            {% for tipo in tipos_pecas %}
+              <option value="{{ tipo.codigo }}">{{ tipo.nome }}</option>
+            {% endfor %}
           </select>
         </div>
-      </div>
 
-      <div id="camposCalculoContainer">
-        <!-- Campos serão inseridos dinamicamente aqui -->
-      </div>
+        <div id="componentesContainer" style="display: none;">
+          <div class="form-row">
+            <label class="label" for="componentePeca">Componente</label>
+            <select id="componentePeca" class="input-field">
+              <option value="">Selecione...</option>
+            </select>
+          </div>
+        </div>
 
-      <div class="modal-actions">
+        <div id="camposCalculoContainer">
+          <!-- Campos serão inseridos dinamicamente aqui -->
+        </div>
+      </div>
+      <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="btnSalvarPeca">Salvar Peça</button>
         <button type="button" class="btn btn-secondary" id="btnCancelarPeca">Cancelar</button>
       </div>
