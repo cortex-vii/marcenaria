@@ -1,28 +1,37 @@
-from .base_dupla import BaseDuplaRule
-from .base_engrossada import BaseEngrossadaRule
-from .base_simples import BaseSimplesRule
-from .lateral_dupla import LateralDuplaRule
-from .lateral_engrossada import LateralEngrossadaRule
-from .lateral_simples import LateralSimplesRule
-from .fundo_simples import FundoSimplesRule
-from .gaveta import GavetaRule
-from .porta_abrir import PortaAbrirRule
-from .porta_correr import PortaCorrerRule
+"""
+Sistema de regras para cálculo de peças
+"""
 
-# Mapeamento de tipos de componentes para suas regras
-REGRAS_COMPONENTES = {
-    'Base dupla': BaseDuplaRule,
-    'Base engrossada': BaseEngrossadaRule,
-    'Base simples': BaseSimplesRule,
-    'Lateral dupla': LateralDuplaRule,
-    'Lateral engrossada': LateralEngrossadaRule,
-    'Lateral simples': LateralSimplesRule,
-    'Fundo simples': FundoSimplesRule,
-    'Gaveta': GavetaRule,
-    'Porta de abrir': PortaAbrirRule,
-    'Porta de correr': PortaCorrerRule,
-}
+def get_rule_class(codigo_tipo_peca):
+    """Retorna a classe de regra para o tipo de peça"""
+    
+    # Mapeamento de códigos para classes
+    RULES_MAP = {
+        'PC-004': 'rule_fundo_simples.FundoSimplesRule',  # Fundo simples
+    }
+    
+    if codigo_tipo_peca not in RULES_MAP:
+        return None
+    
+    # Import dinâmico
+    module_path, class_name = RULES_MAP[codigo_tipo_peca].split('.')
+    
+    try:
+        module = __import__(f'marcenaria.rules.{module_path}', fromlist=[class_name])
+        return getattr(module, class_name)
+    except (ImportError, AttributeError):
+        return None
 
-def obter_regra(tipo_componente_nome):
-    """Retorna a classe de regra apropriada para o tipo de componente"""
-    return REGRAS_COMPONENTES.get(tipo_componente_nome)
+def get_campos_para_peca(codigo_tipo_peca):
+    """Retorna os campos necessários para uma peça"""
+    rule_class = get_rule_class(codigo_tipo_peca)
+    if rule_class:
+        return rule_class.CAMPOS_NECESSARIOS
+    return []
+
+def get_componentes_disponiveis(codigo_tipo_peca):
+    """Retorna os componentes disponíveis para uma peça"""
+    rule_class = get_rule_class(codigo_tipo_peca)
+    if rule_class:
+        return rule_class.COMPONENTES_DISPONIVEIS
+    return []

@@ -1,46 +1,57 @@
 from django.core.management.base import BaseCommand
 from marcenaria.models import TipoPeca, TipoComponente, Fornecedor
-from marcenaria.data.initial_data import TIPOS_COMPONENTES, TIPOS_ACESSORIOS, FORNECEDORES
+from marcenaria.data.initial_data import TIPOS_PECAS, TIPOS_COMPONENTES, FORNECEDORES
 
-# docker exec -it marcenaria_cortex_djangoservice sh
-# python manage.py populate_marcenaria - para executar
 class Command(BaseCommand):
     help = 'Popula os tipos de peças, componentes e fornecedores iniciais'
 
     def handle(self, *args, **options):
         
         self.stdout.write('Criando tipos de peças...')
-        for nome, descricao in TIPOS_COMPONENTES:
+        for item in TIPOS_PECAS:
             tipo, created = TipoPeca.objects.get_or_create(
-                nome=nome,
-                defaults={'descricao': descricao}
+                codigo=item['codigo'],
+                defaults={
+                    'nome': item['nome'],
+                    'descricao': item['descricao']
+                }
             )
             if created:
-                self.stdout.write(f'✓ Criado: {nome}')
+                self.stdout.write(f'✓ Criado: {item["codigo"]} - {item["nome"]}')
             else:
-                self.stdout.write(f'- Já existe: {nome}')
+                self.stdout.write(f'- Já existe: {item["codigo"]} - {item["nome"]}')
 
         self.stdout.write('\nCriando tipos de componentes...')
-        for nome, descricao in TIPOS_ACESSORIOS:
+        for item in TIPOS_COMPONENTES:
             tipo, created = TipoComponente.objects.get_or_create(
-                nome=nome,
-                defaults={'descricao': descricao}
+                codigo=item['codigo'],
+                defaults={
+                    'nome': item['nome'],
+                    'descricao': item['descricao']
+                }
             )
             if created:
-                self.stdout.write(f'✓ Criado: {nome}')
+                self.stdout.write(f'✓ Criado: {item["codigo"]} - {item["nome"]}')
             else:
-                self.stdout.write(f'- Já existe: {nome}')
+                self.stdout.write(f'- Já existe: {item["codigo"]} - {item["nome"]}')
 
         self.stdout.write('\nCriando fornecedores...')
-        for fornecedor_data in FORNECEDORES:
+        for item in FORNECEDORES:
             fornecedor, created = Fornecedor.objects.get_or_create(
-                cnpj=fornecedor_data['cnpj'],
-                defaults=fornecedor_data
+                codigo=item['codigo'],
+                defaults={
+                    'nome': item['nome'],
+                    'cnpj': item['cnpj'],
+                    'contato': item['contato'],
+                    'telefone': item['telefone'],
+                    'email': item['email'],
+                    'endereco': item['endereco']
+                }
             )
             if created:
-                self.stdout.write(f'✓ Criado: {fornecedor_data["nome"]}')
+                self.stdout.write(f'✓ Criado: {item["codigo"]} - {item["nome"]}')
             else:
-                self.stdout.write(f'- Já existe: {fornecedor_data["nome"]}')
+                self.stdout.write(f'- Já existe: {item["codigo"]} - {item["nome"]}')
 
         self.stdout.write(
             self.style.SUCCESS('\n✅ Dados iniciais criados com sucesso!')

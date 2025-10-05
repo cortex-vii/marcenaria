@@ -5,6 +5,7 @@ from money import Money
 
 class TipoComponente(models.Model):
     """Model para tipos de componentes (MDF, FITA, etc.)"""
+    codigo = models.CharField(max_length=20, unique=True, verbose_name="Código")
     nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Componente")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
@@ -14,13 +15,14 @@ class TipoComponente(models.Model):
     class Meta:
         verbose_name = "Tipo de Componente"
         verbose_name_plural = "Tipos de Componentes"
-        ordering = ['nome']
+        ordering = ['codigo']
 
     def __str__(self):
-        return self.nome
+        return f"{self.codigo} - {self.nome}"
 
 class TipoPeca(models.Model):
     """Model para tipos de peças"""
+    codigo = models.CharField(max_length=20, unique=True, verbose_name="Código")
     nome = models.CharField(max_length=100, unique=True, verbose_name="Nome da Peça")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
@@ -30,13 +32,14 @@ class TipoPeca(models.Model):
     class Meta:
         verbose_name = "Tipo de Peça"
         verbose_name_plural = "Tipos de Peças"
-        ordering = ['nome']
+        ordering = ['codigo']
 
     def __str__(self):
-        return self.nome
+        return f"{self.codigo} - {self.nome}"
 
 class Fornecedor(models.Model):
     """Model para fornecedores"""
+    codigo = models.CharField(max_length=20, unique=True, verbose_name="Código")
     nome = models.CharField(max_length=200, verbose_name="Nome")
     cnpj = models.CharField(max_length=18, blank=True, null=True, verbose_name="CNPJ")
     contato = models.CharField(max_length=100, blank=True, null=True, verbose_name="Pessoa de Contato")
@@ -50,10 +53,10 @@ class Fornecedor(models.Model):
     class Meta:
         verbose_name = "Fornecedor"
         verbose_name_plural = "Fornecedores"
-        ordering = ['nome']
+        ordering = ['codigo']
 
     def __str__(self):
-        return self.nome
+        return f"{self.codigo} - {self.nome}"
 
 class Orcamento(models.Model):
     """Model para orçamentos"""
