@@ -1,0 +1,32 @@
+<!-- Componente: Formulário de informações básicas do orçamento -->
+<div class="section">
+  <h2>📋 Informações Básicas</h2>
+  
+  <div class="form-row">
+    <label class="label" for="cliente">Cliente *</label>
+    <input type="text" 
+           id="cliente" 
+           name="cliente" 
+           class="input-field" 
+           value="{{ cliente|default:'' }}" 
+           placeholder="Nome do cliente"
+           required>
+    {% if errors.cliente %}
+      <div class="errorlist">{{ errors.cliente }}</div>
+    {% endif %}
+  </div>
+  
+  <div class="form-row">
+    <label class="label" for="status">Status</label>
+    <select id="status" name="status" class="input-field">
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>
+          {{ label }}
+        </option>
+      {% endfor %}
+    </select>
+    {% if errors.status %}
+      <div class="errorlist">{{ errors.status }}</div>
+    {% endif %}
+  </div>
+</div>

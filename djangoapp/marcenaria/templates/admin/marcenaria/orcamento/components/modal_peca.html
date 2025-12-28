@@ -1,0 +1,50 @@
+<!-- Componente: Modal para adicionar peça -->
+<div id="modal-adicionar-peca" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="close" id="fechar-modal">&times;</span>
+      <h2>➕ Adicionar Nova Peça</h2>
+    </div>
+    
+    <div class="modal-body">
+      <div class="selection-info">
+        <div class="info-item">
+          <strong>Ambiente:</strong> 
+          <span id="modal-ambiente-nome">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Móvel:</strong> 
+          <span id="modal-movel-nome">-</span>
+        </div>
+        <div class="info-item">
+          <strong>Tipo de Peça:</strong> 
+          <span id="modal-tipo-peca-nome">-</span>
+        </div>
+      </div>
+      
+      <div id="campos-peca" class="campos-dinamicos">
+        <!-- Campos serão preenchidos via JavaScript -->
+      </div>
+      
+      <div class="calculation-preview" id="calculation-preview" style="display: none;">
+        <h4>💰 Cálculo Estimado</h4>
+        <div id="calculation-details" class="calculation-details">
+          <!-- Detalhes do cálculo serão mostrados aqui -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button type="button" 
+              id="cancelar-modal" 
+              class="btn btn-outline">
+        Cancelar
+      </button>
+      <button type="button" 
+              id="confirmar-adicionar-peca" 
+              class="btn btn-primary">
+        ✅ Adicionar Peça
+      </button>
+    </div>
+  </div>
+</div>

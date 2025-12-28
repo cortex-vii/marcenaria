@@ -30,9 +30,13 @@ class OrcamentoAdmin(ModelAdmin):
             'fields': ('observacoes',),
             'classes': ('wide',)
         }),
-        ('valor_total', {
+        ('Valor total', {
             'fields': ('valor_total',),
         }),
+        ('Dados do Orçamento', {
+            'fields': ('dados_orcamento',),
+        }),
+        
   
     )
 

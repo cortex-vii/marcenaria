@@ -1,0 +1,125 @@
+/* ==============================================
+   MELHORIAS PARA COMPONENTES MODULARES
+   ============================================== */
+
+/* Estados vazios melhorados */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+  opacity: 0.6;
+}
+
+.empty-state p {
+  margin: 10px 0 5px 0;
+  font-weight: 500;
+  color: #495057;
+}
+
+.empty-state small {
+  color: #6c757d;
+  font-size: 0.9em;
+}
+
+/* Labels com ícones */
+.label-icon {
+  margin-right: 8px;
+  font-size: 1.1em;
+}
+
+.label:has(.label-icon) {
+  display: flex;
+  align-items: center;
+}
+
+/* Melhorias nos campos de cálculo */
+.campos-calculo {
+  margin-top: 20px;
+}
+
+.campos-calculo .form-row {
+  margin-bottom: 15px;
+}
+
+.calculo-header {
+  margin-bottom: 15px;
+}
+
+.calculo-header h4 {
+  margin: 0;
+  color: #28a745;
+  font-size: 1.1em;
+  display: flex;
+  align-items: center;
+}
+
+/* Melhorias visuais gerais */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.section h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 10px;
+}
+
+/* Container de ambiente melhorado */
+.amb-add {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.amb-add .input-field {
+  flex: 1;
+  min-width: 250px;
+}
+
+/* Help text melhorado */
+.help {
+  background: #e7f3ff;
+  border-left: 4px solid #007bff;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  border-radius: 0 4px 4px 0;
+  color: #004085;
+  font-size: 0.9em;
+}
+
+/* Responsividade para componentes modulares */
+@media (max-width: 768px) {
+  .amb-add {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .amb-add .input-field {
+    min-width: auto;
+  }
+  
+  .empty-icon {
+    font-size: 36px;
+  }
+  
+  .section h2 {
+    font-size: 1.2em;
+  }
+}

@@ -1,0 +1,52 @@
+<!-- Componente: Sidebar de resumo -->
+<div class="sidebar">
+  <div class="sidebar-section">
+    <h3>💰 Resumo Financeiro</h3>
+    
+    <div class="valor-total-display">
+      <div class="valor-label">Total Geral</div>
+      <div id="valor-total-display" class="valor-value">R$ 0,00</div>
+    </div>
+    
+    <div class="estatisticas">
+      <div class="stat-item">
+        <span class="stat-label">Total de Peças:</span>
+        <span id="total-pecas" class="stat-value">0</span>
+      </div>
+      
+      <div class="stat-item">
+        <span class="stat-label">Total de Itens:</span>
+        <span id="total-itens" class="stat-value">0</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="sidebar-section">
+    <h3>⚙️ Ações</h3>
+    
+    <button type="button" 
+            id="visualizar-orcamento" 
+            class="btn btn-info btn-full">
+      👁️ Visualizar
+    </button>
+    
+    <button type="button" 
+            id="imprimir-orcamento" 
+            class="btn btn-secondary btn-full">
+      🖨️ Imprimir
+    </button>
+    
+    <div class="form-actions">
+      <button type="submit" 
+              name="salvar" 
+              class="btn btn-success btn-full">
+        💾 Salvar Orçamento
+      </button>
+      
+      <a href="{% url 'admin:marcenaria_orcamento_changelist' %}" 
+         class="btn btn-outline btn-full">
+        ↩️ Voltar
+      </a>
+    </div>
+  </div>
+</div>

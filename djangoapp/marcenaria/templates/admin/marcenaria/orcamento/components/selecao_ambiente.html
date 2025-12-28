@@ -1,0 +1,40 @@
+<!-- Componente: Seleção de ambiente -->
+<div class="section">
+  <h2>🏠 Seleção de Ambiente</h2>
+  
+  <div class="form-row">
+    <label class="label" for="ambiente">Ambiente</label>
+    <select id="ambiente" name="ambiente" class="input-field">
+      <option value="">Selecione um ambiente</option>
+      {% for ambiente in ambientes %}
+        <option value="{{ ambiente.id }}" 
+                data-nome="{{ ambiente.nome }}"
+                {% if ambiente_id == ambiente.id %}selected{% endif %}>
+          {{ ambiente.nome }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+  
+  <div class="form-row" id="movel-row" style="display: none;">
+    <label class="label" for="movel">Móvel</label>
+    <select id="movel" name="movel" class="input-field">
+      <option value="">Selecione um móvel</option>
+    </select>
+  </div>
+  
+  <div class="form-row" id="tipo-peca-row" style="display: none;">
+    <label class="label" for="tipo-peca">Tipo de Peça</label>
+    <select id="tipo-peca" name="tipo-peca" class="input-field">
+      <option value="">Selecione um tipo de peça</option>
+    </select>
+  </div>
+  
+  <div id="adicionar-peca-container" style="display: none;">
+    <button type="button" 
+            id="adicionar-peca-btn" 
+            class="btn btn-primary">
+      ➕ Adicionar Peça
+    </button>
+  </div>
+</div>

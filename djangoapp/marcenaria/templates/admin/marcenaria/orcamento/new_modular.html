@@ -1,0 +1,125 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Adicionar Orçamento | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/orcamento_new.css' %}">
+<link rel="stylesheet" href="{% static 'css/orcamento_components.css' %}">
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Home</a>
+  › <a href="{% url 'admin:marcenaria_orcamento_changelist' %}">Orçamentos</a>
+  › Adicionar
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <h1>📋 Adicionar Orçamento</h1>
+
+  <div class="layout-grid">
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+      <form method="post" id="orcamentoForm">
+        {% csrf_token %}
+
+        <!-- Componente: Informações Básicas -->
+        {% include "admin/marcenaria/orcamento/components/form_basico.html" %}
+
+        <!-- Componente: Gerenciamento de Ambientes -->
+        <div class="section">
+          <h2>🏠 Ambientes e Móveis</h2>
+          
+          <div class="amb-add">
+            <input type="text" 
+                   id="ambienteNome" 
+                   class="input-field" 
+                   placeholder="Nome do ambiente" 
+                   style="max-width: 300px;">
+            <button type="button" class="btn btn-primary" id="btnAddAmbiente">
+              ➕ Adicionar ambiente
+            </button>
+          </div>
+          
+          <div class="help">
+            Adicione quantos ambientes quiser. Para cada ambiente, você poderá adicionar móveis e peças.
+          </div>
+          
+          <div id="ambientesContainer" class="ambientes-container">
+            <div class="empty-state">
+              <div class="empty-icon">🏠</div>
+              <p>Nenhum ambiente adicionado</p>
+              <small>Comece criando um ambiente acima</small>
+            </div>
+          </div>
+          
+          {% if errors.ambientes %}
+            <div class="errorlist">{{ errors.ambientes }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Campos hidden para dados JSON -->
+        <input type="hidden" name="ambientes_json" id="ambientesJson" value="{{ ambientes_json|default:'[]' }}">
+
+        <div class="submit-row toolbar">
+          <button type="submit" class="btn btn-primary">
+            💾 Salvar Orçamento
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnImprimir">
+            🖨️ Imprimir Orçamento
+          </button>
+          <a class="btn btn-secondary" href="{{ changelist_url }}">
+            ↩️ Cancelar
+          </a>
+        </div>
+      </form>
+    </div>
+
+    <!-- Componente: Sidebar Resumo -->
+    <div class="sidebar-content">
+      <div class="resumo-orcamento" id="resumoOrcamento">
+        <div class="resumo-header">
+          <h3>💰 Resumo do Orçamento</h3>
+          <div class="valor-total" id="valorTotal">R$ 0,00</div>
+        </div>
+        
+        <div class="resumo-stats">
+          <div class="stat-item">
+            <div class="stat-number" id="totalAmbientes">0</div>
+            <div class="stat-label">Ambientes</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="totalMoveis">0</div>
+            <div class="stat-label">Móveis</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number" id="totalPecas">0</div>
+            <div class="stat-label">Peças</div>
+          </div>
+        </div>
+        
+        <div class="resumo-detalhes" id="resumoDetalhes">
+          <div class="empty-state" style="margin: 0; padding: 20px 0; border: none;">
+            <div class="empty-icon">📊</div>
+            <p>Nenhum item adicionado</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Componentes de Modal -->
+  {% include "admin/marcenaria/orcamento/components/modals.html" %}
+
+</div>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="{% static 'js/orcamento_new.js' %}" defer></script>
+{% endblock %}

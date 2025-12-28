@@ -257,6 +257,18 @@
   margin: 0;
   font-size: 14px;
   color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.movel-contador-pecas {
+  background: #2563eb;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-weight: 500;
 }
 
 .movel-actions {
@@ -277,36 +289,124 @@
   font-size: 12px;
 }
 
-.peca-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
+/* Lista de peças melhorada */
+.pecas-lista {
+  background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 4px;
-  margin-bottom: 8px;
-  background: #f9fafb;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.pecas-lista-header {
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 80px;
+  gap: 12px;
+  align-items: center;
+}
+
+.peca-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 80px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background-color 0.2s;
+}
+
+.peca-item:last-child {
+  border-bottom: none;
+}
+
+.peca-item:hover {
+  background: #f8fafc;
 }
 
 .peca-info {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .peca-nome {
   font-weight: 600;
   color: #1f2937;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.3;
 }
 
-.peca-detalhes {
+.peca-componente {
   color: #6b7280;
   font-size: 12px;
-  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.peca-componente::before {
+  content: "📦";
+  font-size: 10px;
+}
+
+.peca-quantidade-col {
+  text-align: center;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.peca-valor-col {
+  text-align: right;
+  font-weight: 700;
+  color: #059669;
+  font-size: 14px;
 }
 
 .peca-actions {
   display: flex;
+  justify-content: center;
   gap: 4px;
+}
+
+/* Detalhes expandidos da peça */
+.peca-detalhes-expandidos {
+  grid-column: 1 / -1;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  padding: 12px;
+  margin: 0 -12px -12px -12px;
+  border-radius: 0 0 6px 6px;
+}
+
+.peca-calculo-detalhado {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  font-size: 11px;
+}
+
+.calculo-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #fff;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+}
+
+.calculo-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.calculo-valor {
+  color: #1e293b;
+  font-weight: 600;
 }
 
 .btn-xs {
@@ -328,6 +428,57 @@
   font-size: 11px;
   margin-top: 2px;
 }
+
+/* Badges e indicadores */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-primary {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Separadores visuais */
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+  margin: 16px 0;
+}
+
+/* Ícones de tipo de peça */
+.tipo-peca-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-right: 6px;
+}
+
+.tipo-peca-icon.fundo { background: #fef3c7; color: #92400e; }
+.tipo-peca-icon.lateral { background: #dbeafe; color: #1d4ed8; }
+.tipo-peca-icon.base { background: #dcfce7; color: #166534; }
+.tipo-peca-icon.gaveta { background: #fce7f3; color: #be185d; }
+.tipo-peca-icon.porta { background: #f3e8ff; color: #7c3aed; }
 
 /* Painel de resumo do orçamento */
 .resumo-orcamento {

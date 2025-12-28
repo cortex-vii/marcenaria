@@ -21,6 +21,29 @@ document.addEventListener('DOMContentLoaded', function() {
     ambientes = [];
   }
 
+  // ========== FUNÇÕES DE UTILITÁRIO ==========
+
+  function toggleDetalhesCalculo(button) {
+    const pecaItem = button.closest('.peca-item');
+    const detalhes = pecaItem.querySelector('.peca-detalhes-expandidos');
+    const isExpandida = pecaItem.getAttribute('data-peca-expandida') === 'true';
+    
+    if (isExpandida) {
+      detalhes.style.display = 'none';
+      pecaItem.setAttribute('data-peca-expandida', 'false');
+      button.textContent = '📊';
+      button.title = 'Ver detalhes';
+    } else {
+      detalhes.style.display = 'block';
+      pecaItem.setAttribute('data-peca-expandida', 'true');
+      button.textContent = '📈';
+      button.title = 'Ocultar detalhes';
+    }
+  }
+
+  // Tornar a função global para uso no HTML
+  window.toggleDetalhesCalculo = toggleDetalhesCalculo;
+
   // ========== FUNÇÕES DE RENDERIZAÇÃO ==========
   
   function render() {
@@ -61,30 +84,40 @@ document.addEventListener('DOMContentLoaded', function() {
       return '<div class="empty-moveis">Nenhum móvel adicionado</div>';
     }
 
-    return moveis.map((movel, movelIdx) => `
-      <div class="movel-item">
-        <div class="movel-header">
-          <h4>${movel.nome}</h4>
-          <div class="movel-actions">
-            <button type="button" class="btn btn-primary btn-sm" 
-                    data-ambiente="${ambienteIdx}" 
-                    data-movel="${movelIdx}" 
-                    data-action="add-peca">
-              Adicionar Peça
-            </button>
-            <button type="button" class="btn btn-danger btn-sm" 
-                    data-ambiente="${ambienteIdx}" 
-                    data-movel="${movelIdx}" 
-                    data-action="remove-movel">
-              Remover
-            </button>
+    return moveis.map((movel, movelIdx) => {
+      const totalPecasFisicas = (movel.pecas || []).reduce((acc, peca) => {
+        const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
+        return acc + quantidade;
+      }, 0);
+
+      return `
+        <div class="movel-item">
+          <div class="movel-header">
+            <h4>
+              ${movel.nome}
+              ${totalPecasFisicas > 0 ? `<span class="movel-contador-pecas">${totalPecasFisicas}</span>` : ''}
+            </h4>
+            <div class="movel-actions">
+              <button type="button" class="btn btn-primary btn-sm" 
+                      data-ambiente="${ambienteIdx}" 
+                      data-movel="${movelIdx}" 
+                      data-action="add-peca">
+                Adicionar Peça
+              </button>
+              <button type="button" class="btn btn-danger btn-sm" 
+                      data-ambiente="${ambienteIdx}" 
+                      data-movel="${movelIdx}" 
+                      data-action="remove-movel">
+                Remover
+              </button>
+            </div>
+          </div>
+          <div class="pecas-container">
+            ${renderPecas(movel.pecas || [], ambienteIdx, movelIdx)}
           </div>
         </div>
-        <div class="pecas-container">
-          ${renderPecas(movel.pecas || [], ambienteIdx, movelIdx)}
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   function renderPecas(pecas, ambienteIdx, movelIdx) {
@@ -92,40 +125,105 @@ document.addEventListener('DOMContentLoaded', function() {
       return '<div class="empty-pecas">Nenhuma peça adicionada</div>';
     }
 
-    return pecas.map((peca, pecaIdx) => {
-      let calculoInfo = '';
+    // Função para obter ícone do tipo de peça
+    function getTipoPecaIcon(tipoCodigo) {
+      const icons = {
+        'PC-004': { icon: '📄', class: 'fundo' },     // Fundo simples
+        'PC-009': { icon: '📱', class: 'lateral' },   // Lateral simples
+        'PC-006': { icon: '📱', class: 'lateral' },   // Lateral dupla
+        'PC-002': { icon: '📋', class: 'base' },      // Base simples
+        'PC-001': { icon: '📋', class: 'base' },      // Base dupla
+        'PC-005': { icon: '🗂️', class: 'gaveta' },    // Gaveta
+        'PC-010': { icon: '🚪', class: 'porta' },     // Porta de abrir
+        'PC-011': { icon: '🚪', class: 'porta' },     // Porta de correr
+      };
+      return icons[tipoCodigo] || { icon: '🔧', class: 'base' };
+    }
+
+    const listHeader = `
+      <div class="pecas-lista">
+        <div class="pecas-lista-header">
+          <div>Peça / Componente</div>
+          <div>Quantidade</div>
+          <div>Valor</div>
+          <div>Ação</div>
+        </div>
+    `;
+
+    const listItems = pecas.map((peca, pecaIdx) => {
+      const iconInfo = getTipoPecaIcon(peca.tipo_codigo);
+      const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
+      const custo = peca.resultado_calculo?.custo_total || 0;
+      const resumoCalculo = peca.resultado_calculo?.resumo || '';
       
-      if (peca.resultado_calculo && peca.resultado_calculo.sucesso) {
-        const resultado = peca.resultado_calculo;
-        const custo = resultado.custo_total || 0;
-        
-        calculoInfo = `
-          <div class="peca-calculo">
-            <div class="peca-quantidade">${resultado.resumo || ''}</div>
-            <div class="peca-custo">Custo: R$ ${custo.toFixed(2)}</div>
+      // Detalhes expandidos do cálculo
+      const detalhesExpandidos = peca.resultado_calculo ? `
+        <div class="peca-detalhes-expandidos">
+          <div class="peca-calculo-detalhado">
+            ${peca.resultado_calculo.area_por_peca ? `
+              <div class="calculo-item">
+                <span class="calculo-label">Área por peça:</span>
+                <span class="calculo-valor">${peca.resultado_calculo.area_por_peca.toFixed(4)} m²</span>
+              </div>
+            ` : ''}
+            ${peca.resultado_calculo.area_total ? `
+              <div class="calculo-item">
+                <span class="calculo-label">Área total:</span>
+                <span class="calculo-valor">${peca.resultado_calculo.area_total.toFixed(4)} m²</span>
+              </div>
+            ` : ''}
+            ${peca.resultado_calculo.quantidade_utilizada ? `
+              <div class="calculo-item">
+                <span class="calculo-label">Material usado:</span>
+                <span class="calculo-valor">${peca.resultado_calculo.quantidade_utilizada.toFixed(4)} ${peca.resultado_calculo.unidade || 'm²'}</span>
+              </div>
+            ` : ''}
+            <div class="calculo-item">
+              <span class="calculo-label">Resumo:</span>
+              <span class="calculo-valor">${resumoCalculo}</span>
+            </div>
           </div>
-        `;
-      }
+        </div>
+      ` : '';
 
       return `
-        <div class="peca-item">
+        <div class="peca-item" data-peca-expandida="false">
           <div class="peca-info">
-            <div class="peca-nome">${peca.tipo_nome} - ${peca.componente_nome}</div>
-            <div class="peca-detalhes">${peca.resumo || 'Calculando...'}</div>
-            ${calculoInfo}
+            <div class="peca-nome">
+              <span class="tipo-peca-icon ${iconInfo.class}">${iconInfo.icon}</span>
+              ${peca.tipo_nome}
+            </div>
+            <div class="peca-componente">
+              ${peca.componente_nome}
+            </div>
+          </div>
+          <div class="peca-quantidade-col">
+            <span class="badge badge-primary">${quantidade}x</span>
+          </div>
+          <div class="peca-valor-col">
+            R$ ${custo.toFixed(2)}
           </div>
           <div class="peca-actions">
+            <button type="button" class="btn btn-secondary btn-xs" 
+                    title="Ver detalhes"
+                    onclick="toggleDetalhesCalculo(this)">
+              📊
+            </button>
             <button type="button" class="btn btn-danger btn-xs" 
                     data-ambiente="${ambienteIdx}"
                     data-movel="${movelIdx}"
                     data-peca="${pecaIdx}" 
-                    data-action="remove-peca">
-              Remover
+                    data-action="remove-peca"
+                    title="Remover peça">
+              🗑️
             </button>
           </div>
+          ${detalhesExpandidos}
         </div>
       `;
     }).join('');
+
+    return listHeader + listItems + '</div>';
   }
 
   // ========== FUNÇÕES DE RESUMO ==========
@@ -187,35 +285,67 @@ document.addEventListener('DOMContentLoaded', function() {
     ambientes.forEach(ambiente => {
       const moveis = ambiente.moveis || [];
       let custoAmbiente = 0;
+      let totalPecasAmbiente = 0;
       
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
         
         pecas.forEach(peca => {
+          // Contar peças físicas
+          const quantidadeFisica = parseInt(peca.dados_calculo?.quantidade || 1);
+          totalPecasAmbiente += quantidadeFisica;
+          
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
             custoAmbiente += parseFloat(peca.resultado_calculo.custo_total);
           }
         });
       });
 
+      const percentualDoTotal = ambientes.reduce((total, amb) => {
+        const ambMoveis = amb.moveis || [];
+        let ambCusto = 0;
+        ambMoveis.forEach(movel => {
+          const pecas = movel.pecas || [];
+          pecas.forEach(peca => {
+            if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
+              ambCusto += parseFloat(peca.resultado_calculo.custo_total);
+            }
+          });
+        });
+        return total + ambCusto;
+      }, 0);
+
+      const percentual = percentualDoTotal > 0 ? (custoAmbiente / percentualDoTotal * 100) : 0;
+
       html += `
         <div class="ambiente-resumo">
           <div class="ambiente-resumo-nome">
-            ${ambiente.nome} - R$ ${custoAmbiente.toFixed(2)}
+            🏠 ${ambiente.nome}
+            <span class="badge badge-success">R$ ${custoAmbiente.toFixed(2)}</span>
+            ${percentual > 0 ? `<span class="badge badge-primary">${percentual.toFixed(1)}%</span>` : ''}
           </div>
-          ${moveis.map(movel => {
-            // Calcular total de peças físicas do móvel
-            const totalPecasFisicasMovel = (movel.pecas || []).reduce((acc, peca) => {
-              const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
-              return acc + quantidade;
-            }, 0);
-            
-            return `
-              <div class="movel-resumo">
-                📦 ${movel.nome} (${totalPecasFisicasMovel} peças)
-              </div>
-            `;
-          }).join('')}
+          <div style="margin-top: 6px;">
+            ${moveis.map(movel => {
+              const qtdPecasFisicas = (movel.pecas || []).reduce((acc, peca) => {
+                return acc + parseInt(peca.dados_calculo?.quantidade || 1);
+              }, 0);
+              
+              let custoMovel = 0;
+              (movel.pecas || []).forEach(peca => {
+                if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
+                  custoMovel += parseFloat(peca.resultado_calculo.custo_total);
+                }
+              });
+              
+              return `
+                <div class="movel-resumo">
+                  📦 ${movel.nome} 
+                  <span class="badge badge-warning">${qtdPecasFisicas} peças</span>
+                  <span style="color: #059669; font-weight: 600; font-size: 11px;">R$ ${custoMovel.toFixed(2)}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
         </div>
       `;
     });
