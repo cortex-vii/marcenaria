@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const input = document.getElementById('ambienteNome');
   const btn = document.getElementById('btnAddAmbiente');
   const container = document.getElementById('ambientesContainer');
@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const pecaItem = button.closest('.peca-item');
     const detalhes = pecaItem.querySelector('.peca-detalhes-expandidos');
     const isExpandida = pecaItem.getAttribute('data-peca-expandida') === 'true';
-    
+
     if (isExpandida) {
       detalhes.style.display = 'none';
       pecaItem.setAttribute('data-peca-expandida', 'false');
@@ -45,10 +45,10 @@ document.addEventListener('DOMContentLoaded', function() {
   window.toggleDetalhesCalculo = toggleDetalhesCalculo;
 
   // ========== FUNÇÕES DE RENDERIZAÇÃO ==========
-  
+
   function render() {
     container.innerHTML = '';
-    
+
     if (ambientes.length === 0) {
       container.innerHTML = '<div class="empty-state">Nenhum ambiente adicionado</div>';
     } else {
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
         container.appendChild(ambienteDiv);
       });
     }
-    
+
     hidden.value = JSON.stringify(ambientes);
     atualizarResumo();
   }
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
       const custo = peca.resultado_calculo?.custo_total || 0;
       const resumoCalculo = peca.resultado_calculo?.resumo || '';
-      
+
       // Detalhes expandidos do cálculo
       const detalhesExpandidos = peca.resultado_calculo ? `
         <div class="peca-detalhes-expandidos">
@@ -240,17 +240,17 @@ document.addEventListener('DOMContentLoaded', function() {
     ambientes.forEach((ambiente, ambIdx) => {
       const moveis = ambiente.moveis || [];
       totalMoveis += moveis.length;
-      
+
       moveis.forEach((movel, movelIdx) => {
         const pecas = movel.pecas || [];
-        
+
         pecas.forEach((peca, pecaIdx) => {
           // Contar quantidade física de peças, não registros
           const quantidadeFisica = parseInt(peca.dados_calculo?.quantidade || 1);
           totalPecasFisicas += quantidadeFisica;
-          
+
           console.log(`Ambiente ${ambIdx}, Móvel ${movelIdx}, Peça ${pecaIdx}: ${quantidadeFisica} peças físicas`);
-          
+
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
             const custo = parseFloat(peca.resultado_calculo.custo_total);
             valorTotal += custo;
@@ -274,27 +274,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function atualizarResumoDetalhes() {
     const container = document.getElementById('resumoDetalhes');
-    
+
     if (ambientes.length === 0) {
       container.innerHTML = '<div class="empty-state" style="margin: 0; padding: 20px 0; border: none;">Nenhum item adicionado</div>';
       return;
     }
 
     let html = '';
-    
+
     ambientes.forEach(ambiente => {
       const moveis = ambiente.moveis || [];
       let custoAmbiente = 0;
       let totalPecasAmbiente = 0;
-      
+
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
-        
+
         pecas.forEach(peca => {
           // Contar peças físicas
           const quantidadeFisica = parseInt(peca.dados_calculo?.quantidade || 1);
           totalPecasAmbiente += quantidadeFisica;
-          
+
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
             custoAmbiente += parseFloat(peca.resultado_calculo.custo_total);
           }
@@ -326,40 +326,37 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <div style="margin-top: 6px;">
             ${moveis.map(movel => {
-              const qtdPecasFisicas = (movel.pecas || []).reduce((acc, peca) => {
-                return acc + parseInt(peca.dados_calculo?.quantidade || 1);
-              }, 0);
-              
-              let custoMovel = 0;
-              (movel.pecas || []).forEach(peca => {
-                if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
-                  custoMovel += parseFloat(peca.resultado_calculo.custo_total);
-                }
-              });
-              
-              return `
+        const qtdPecasFisicas = (movel.pecas || []).reduce((acc, peca) => {
+          return acc + parseInt(peca.dados_calculo?.quantidade || 1);
+        }, 0);
+
+        let custoMovel = 0;
+        (movel.pecas || []).forEach(peca => {
+          if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
+            custoMovel += parseFloat(peca.resultado_calculo.custo_total);
+          }
+        });
+
+        return `
                 <div class="movel-resumo">
                   📦 ${movel.nome} 
                   <span class="badge badge-warning">${qtdPecasFisicas} peças</span>
                   <span style="color: #059669; font-weight: 600; font-size: 11px;">R$ ${custoMovel.toFixed(2)}</span>
                 </div>
               `;
-            }).join('')}
+      }).join('')}
           </div>
         </div>
       `;
     });
-    
+
     container.innerHTML = html;
   }
 
   // ========== FUNÇÕES DE CÁLCULO ==========
 
-  async function calcularPeca(tipoPecaCodigo, dadosCalculo, componenteData) {
+  async function calcularPeca(tipoPecaCodigo, dadosCalculo, componenteData, componentesAdicionais = {}) {
     try {
-      // Simular chamada de API para cálculo
-      // Em produção, você faria uma chamada real para o backend
-      
       const response = await fetch('/marcenaria/api/calcular-peca/', {
         method: 'POST',
         headers: {
@@ -369,7 +366,8 @@ document.addEventListener('DOMContentLoaded', function() {
         body: JSON.stringify({
           tipo_peca_codigo: tipoPecaCodigo,
           dados_calculo: dadosCalculo,
-          componente_id: componenteData.id
+          componente_id: componenteData.id,
+          componentes_adicionais: componentesAdicionais // <-- Adicionado aqui
         })
       });
 
@@ -377,41 +375,11 @@ document.addEventListener('DOMContentLoaded', function() {
         return await response.json();
       } else {
         // Fallback: cálculo simples no frontend
-        return calcularPecaLocal(tipoPecaCodigo, dadosCalculo, componenteData);
+        return { sucesso: false, erro: 'Erro ao calcular a peça. Tente novamente mais tarde.' };
       }
     } catch (error) {
-      console.log('Usando cálculo local devido a erro:', error);
-      return calcularPecaLocal(tipoPecaCodigo, dadosCalculo, componenteData);
+      return { sucesso: false, erro: 'Erro ao calcular a peça. Tente novamente mais tarde.' };
     }
-  }
-
-  function calcularPecaLocal(tipoPecaCodigo, dadosCalculo, componenteData) {
-    // Cálculo simples baseado no tipo de peça
-    const quantidade = parseFloat(dadosCalculo.quantidade || 0);
-    const altura = parseFloat(dadosCalculo.altura || 0) / 100; // cm para m
-    const largura = parseFloat(dadosCalculo.largura || 0) / 100; // cm para m
-    
-    if (quantidade <= 0 || altura <= 0 || largura <= 0) {
-      return {
-        sucesso: false,
-        erro: 'Dados inválidos para cálculo'
-      };
-    }
-
-    const areaUnitaria = altura * largura;
-    const areaTotal = areaUnitaria * quantidade;
-    const custoUnitario = parseFloat(componenteData.custo_unitario || 0);
-    const custoTotal = areaTotal * custoUnitario;
-
-    return {
-      sucesso: true,
-      area_por_peca: areaUnitaria,
-      area_total: areaTotal,
-      quantidade_utilizada: areaTotal,
-      custo_total: custoTotal,
-      unidade: 'm²',
-      resumo: `${quantidade}x peças de ${(altura*100).toFixed(1)}cm x ${(largura*100).toFixed(1)}cm = ${areaTotal.toFixed(4)} m²`
-    };
   }
 
   function mostrarResultadoCalculo(resultado) {
@@ -439,7 +407,7 @@ document.addEventListener('DOMContentLoaded', function() {
   async function calcularEmTempoReal() {
     const tipoPeca = document.getElementById('tipoPeca').value;
     const componentePeca = document.getElementById('componentePeca').value;
-    
+
     if (!tipoPeca || !componentePeca) {
       document.getElementById('calculoResultado').style.display = 'none';
       return;
@@ -449,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const dadosCalculo = {};
     const campos = document.querySelectorAll('#camposCalculoContainer input');
     let camposValidos = true;
-    
+
     for (let campo of campos) {
       const valor = campo.value.trim();
       if (campo.required && !valor) {
@@ -468,8 +436,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const compOption = document.getElementById('componentePeca').options[document.getElementById('componentePeca').selectedIndex];
     const componenteData = JSON.parse(compOption.dataset.componente);
 
+      // Coletar componentes adicionais selecionados (enviar apenas o id)
+      const adicionaisSelecionados = [];
+      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+      const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
+      for (let select of selectsAdicionais) {
+        if (select.required && !select.value) {
+          alert('Selecione todos os componentes adicionais obrigatórios');
+          return;
+        }
+        adicionaisSelecionados.push(select.value);
+      }
+
     // Fazer cálculo
-    const resultado = await calcularPeca(tipoPeca, dadosCalculo, componenteData);
+    const resultado = await calcularPeca(tipoPeca, dadosCalculo, componenteData, adicionaisSelecionados);
     mostrarResultadoCalculo(resultado);
   }
 
@@ -482,15 +462,15 @@ document.addEventListener('DOMContentLoaded', function() {
       input.focus();
       return;
     }
-    
+
     const existe = ambientes.some(a => a.nome.toLowerCase() === nome.toLowerCase());
     if (existe) {
       alert('Este ambiente já foi adicionado!');
       input.focus();
       return;
     }
-    
-    ambientes.push({ 
+
+    ambientes.push({
       nome: nome,
       moveis: []
     });
@@ -510,12 +490,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!ambientes[ambienteIdx].moveis) {
       ambientes[ambienteIdx].moveis = [];
     }
-    
+
     ambientes[ambienteIdx].moveis.push({
       nome: nomeMovel,
       pecas: []
     });
-    
+
     render();
   }
 
@@ -531,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!ambientes[ambienteIdx].moveis[movelIdx].pecas) {
       ambientes[ambienteIdx].moveis[movelIdx].pecas = [];
     }
-    
+
     // Fazer cálculo antes de adicionar
     const componenteData = {
       id: dadosPeca.componente_id,
@@ -541,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const resultado = await calcularPeca(dadosPeca.tipo_codigo, dadosPeca.dados_calculo, componenteData);
     dadosPeca.resultado_calculo = resultado;
-    
+
     ambientes[ambienteIdx].moveis[movelIdx].pecas.push(dadosPeca);
     render();
   }
@@ -571,14 +551,14 @@ document.addEventListener('DOMContentLoaded', function() {
   function openModalPeca(ambienteIdx, movelIdx) {
     currentAmbienteIndex = ambienteIdx;
     currentMovelIndex = movelIdx;
-    
+
     // Limpar formulário
     document.getElementById('tipoPeca').value = '';
     document.getElementById('componentePeca').innerHTML = '<option value="">Selecione...</option>';
     document.getElementById('componentesContainer').style.display = 'none';
     document.getElementById('camposCalculoContainer').innerHTML = '';
     document.getElementById('calculoResultado').style.display = 'none';
-    
+
     document.getElementById('modalPeca').style.display = 'block';
   }
 
@@ -586,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('modalPeca').style.display = 'none';
     currentAmbienteIndex = null;
     currentMovelIndex = null;
-    
+
     if (currentCalculoTimeout) {
       clearTimeout(currentCalculoTimeout);
       currentCalculoTimeout = null;
@@ -598,21 +578,21 @@ document.addEventListener('DOMContentLoaded', function() {
   function imprimirOrcamento() {
     const cliente = document.getElementById('cliente').value || 'Cliente não informado';
     const dataAtual = new Date().toLocaleDateString('pt-BR');
-    
+
     // Calcular totais
     let valorTotal = 0;
     let totalPecasFisicas = 0; // Mudança: contar peças físicas
-    
+
     ambientes.forEach(ambiente => {
       const moveis = ambiente.moveis || [];
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
-        
+
         pecas.forEach(peca => {
           // Contar quantidade física de peças
           const quantidadeFisica = parseInt(peca.dados_calculo?.quantidade || 1);
           totalPecasFisicas += quantidadeFisica;
-          
+
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
             valorTotal += parseFloat(peca.resultado_calculo.custo_total);
           }
@@ -668,7 +648,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ambientes.forEach(ambiente => {
       const moveis = ambiente.moveis || [];
       let custoAmbiente = 0;
-      
+
       // Calcular custo do ambiente
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
@@ -688,13 +668,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
-        
+
         // Calcular total de peças físicas do móvel para impressão
         const totalPecasFisicasMovel = pecas.reduce((acc, peca) => {
           const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
           return acc + quantidade;
         }, 0);
-        
+
         htmlImpressao += `
           <div class="movel">
             <div class="movel-nome">${movel.nome} (${totalPecasFisicasMovel} peças físicas)</div>
@@ -704,7 +684,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const custo = peca.resultado_calculo?.custo_total || 0;
           const resumo = peca.resultado_calculo?.resumo || peca.resumo || '';
           const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
-          
+
           htmlImpressao += `
             <div class="peca">
               <div class="peca-nome">${peca.tipo_nome} - ${peca.componente_nome} (${quantidade}x)</div>
@@ -722,7 +702,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Adicionar totais (usando peças físicas)
     const totalMoveisFinal = ambientes.reduce((acc, amb) => acc + (amb.moveis || []).length, 0);
-    
+
     htmlImpressao += `
         <div class="totais">
           <div class="resumo-numeros">
@@ -760,12 +740,12 @@ document.addEventListener('DOMContentLoaded', function() {
       const response = await fetch(`/marcenaria/api/componentes/${tipoPecaCodigo}/`);
       const data = await response.json();
       console.log(" componentes disponíveis :", data);
-      
-      
+
+
       if (data.sucesso) {
         const select = document.getElementById('componentePeca');
         select.innerHTML = '<option value="">Selecione...</option>';
-        
+
         data.componentes.forEach(comp => {
           const option = document.createElement('option');
           option.value = comp.id;
@@ -773,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function() {
           option.dataset.componente = JSON.stringify(comp);
           select.appendChild(option);
         });
-        
+
         document.getElementById('componentesContainer').style.display = 'block';
       } else {
         alert('Erro ao carregar componentes: ' + data.erro);
@@ -785,88 +765,88 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   async function carregarComponentesAdicionais(tipoPecaCodigo) {
-  try {
-    const response = await fetch(`/marcenaria/api/componentes/${tipoPecaCodigo}/`);
-    const data = await response.json();
+    try {
+      const response = await fetch(`/marcenaria/api/componentes/${tipoPecaCodigo}/`);
+      const data = await response.json();
 
-    if (data.sucesso && data.componentes_adicionais) {
-      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
-      adicionaisContainer.innerHTML = '';
+      if (data.sucesso && data.componentes_adicionais) {
+        const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+        adicionaisContainer.innerHTML = '';
 
-      Object.values(data.componentes_adicionais).forEach(grupo => {
-        // Título do grupo (nome do componente)
-        const label = document.createElement('label');
-        label.className = 'label';
-        label.textContent = grupo.nome + ' *';
+        Object.values(data.componentes_adicionais).forEach(grupo => {
+          // Título do grupo (nome do componente)
+          const label = document.createElement('label');
+          label.className = 'label';
+          label.textContent = grupo.nome + ' *';
 
-        // Select dos componentes adicionais
-        const select = document.createElement('select');
-        select.className = 'input-field';
-        select.id = `componenteAdicional_${grupo.codigo}`;
-        select.name = `componenteAdicional_${grupo.codigo}`;
-        select.required = true;
+          // Select dos componentes adicionais
+          const select = document.createElement('select');
+          select.className = 'input-field';
+          select.id = `componenteAdicional_${grupo.codigo}`;
+          select.name = `componenteAdicional_${grupo.codigo}`;
+          select.required = true;
 
-        select.innerHTML = '<option value="">Selecione...</option>';
-        grupo.componentes.forEach(comp => {
-          const option = document.createElement('option');
-          option.value = comp.id;
-          option.textContent = `${comp.nome} (R$ ${comp.custo_unitario})`;
-          option.dataset.componente = JSON.stringify(comp);
-          select.appendChild(option);
+          select.innerHTML = '<option value="">Selecione...</option>';
+          grupo.componentes.forEach(comp => {
+            const option = document.createElement('option');
+            option.value = comp.id;
+            option.textContent = `${comp.nome} (R$ ${comp.custo_unitario})`;
+            option.dataset.componente = JSON.stringify(comp);
+            select.appendChild(option);
+          });
+
+          // Adicionar ao container
+          adicionaisContainer.appendChild(label);
+          adicionaisContainer.appendChild(select);
+
+          // Evento para cálculo em tempo real se necessário
+          select.addEventListener('change', () => {
+            if (currentCalculoTimeout) clearTimeout(currentCalculoTimeout);
+            currentCalculoTimeout = setTimeout(calcularEmTempoReal, 300);
+          });
         });
 
-        // Adicionar ao container
-        adicionaisContainer.appendChild(label);
-        adicionaisContainer.appendChild(select);
-
-        // Evento para cálculo em tempo real se necessário
-        select.addEventListener('change', () => {
-          if (currentCalculoTimeout) clearTimeout(currentCalculoTimeout);
-          currentCalculoTimeout = setTimeout(calcularEmTempoReal, 300);
-        });
-      });
-
-      adicionaisContainer.style.display = 'block';
-    } else {
-      document.getElementById('componentesAdicionaisContainer').style.display = 'none';
+        adicionaisContainer.style.display = 'block';
+      } else {
+        document.getElementById('componentesAdicionaisContainer').style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Erro ao carregar componentes adicionais:', error);
+      alert('Erro ao carregar componentes adicionais');
     }
-  } catch (error) {
-    console.error('Erro ao carregar componentes adicionais:', error);
-    alert('Erro ao carregar componentes adicionais');
   }
-}
 
 
   async function carregarCamposCalculo(tipoPecaCodigo) {
     try {
       const response = await fetch(`/marcenaria/api/campos-calculo/${tipoPecaCodigo}/`);
       const data = await response.json();
-      
+
       if (data.sucesso) {
         const container = document.getElementById('camposCalculoContainer');
         container.innerHTML = '';
-        
+
         data.campos.forEach(campo => {
           const fieldDiv = document.createElement('div');
           fieldDiv.className = 'campo-calculo';
-          
+
           const label = document.createElement('label');
           label.className = 'label';
           label.setAttribute('for', `campo_${campo.name}`);
           label.textContent = campo.label + (campo.required ? ' *' : '');
-          
+
           const input = document.createElement('input');
           input.type = campo.type;
           input.id = `campo_${campo.name}`;
           input.name = campo.name;
           input.className = 'input-field';
           input.required = campo.required || false;
-          
+
           if (campo.min !== undefined) input.min = campo.min;
           if (campo.max !== undefined) input.max = campo.max;
           if (campo.step !== undefined) input.step = campo.step;
           if (campo.placeholder) input.placeholder = campo.placeholder;
-          
+
           // Adicionar evento de cálculo em tempo real
           input.addEventListener('input', () => {
             if (currentCalculoTimeout) {
@@ -874,17 +854,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             currentCalculoTimeout = setTimeout(calcularEmTempoReal, 500);
           });
-          
+
           fieldDiv.appendChild(label);
           fieldDiv.appendChild(input);
-          
+
           if (campo.help) {
             const help = document.createElement('div');
             help.className = 'help-text';
             help.textContent = campo.help;
             fieldDiv.appendChild(help);
           }
-          
+
           container.appendChild(fieldDiv);
         });
       } else {
@@ -899,11 +879,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // ========== EVENT LISTENERS ==========
 
   // Ambiente
-  btn.addEventListener('click', function(e) {
+  btn.addEventListener('click', function (e) {
     e.preventDefault();
     addAmbiente();
   });
-  
+
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -949,7 +929,7 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Digite o nome do móvel');
       return;
     }
-    
+
     addMovel(currentAmbienteIndex, nome);
     closeModalMovel();
   });
@@ -981,12 +961,12 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('btnSalvarPeca').addEventListener('click', async () => {
     const tipoPeca = document.getElementById('tipoPeca');
     const componentePeca = document.getElementById('componentePeca');
-    
+
     if (!tipoPeca.value) {
       alert('Selecione o tipo de peça');
       return;
     }
-    
+
     if (!componentePeca.value) {
       alert('Selecione o componente');
       return;
@@ -995,7 +975,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Coletar dados dos campos de cálculo
     const dadosCalculo = {};
     const campos = document.querySelectorAll('#camposCalculoContainer input');
-    
+
     for (let campo of campos) {
       if (campo.required && !campo.value.trim()) {
         alert(`O campo "${campo.previousElementSibling.textContent}" é obrigatório`);
@@ -1006,28 +986,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Coletar componentes adicionais selecionados
-    const adicionaisSelecionados = {};
+    const adicionaisSelecionados = [];
     const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
     const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
     for (let select of selectsAdicionais) {
       if (select.required && !select.value) {
-        alert('Selecione o componente adicional: ' + select.previousElementSibling.textContent);
-        select.focus();
+        alert('Selecione todos os componentes adicionais obrigatórios');
         return;
       }
-      const compData = JSON.parse(select.options[select.selectedIndex].dataset.componente);
-      adicionaisSelecionados[select.id.replace('componenteAdicional_', '')] = {
-        id: select.value,
-        nome: compData.nome,
-        custo_unitario: compData.custo_unitario
-      };
+        adicionaisSelecionados.push(select.value);
     }
-    
+
     // Preparar dados da peça
     const tipoOption = tipoPeca.options[tipoPeca.selectedIndex];
     const compOption = componentePeca.options[componentePeca.selectedIndex];
     const componenteData = JSON.parse(compOption.dataset.componente);
-    
+
     const dadosPeca = {
       tipo_codigo: tipoPeca.value,
       tipo_nome: tipoOption.textContent,
@@ -1035,10 +1009,10 @@ document.addEventListener('DOMContentLoaded', function() {
       componente_nome: componenteData.nome,
       componente_preco_unitario: componenteData.custo_unitario,
       dados_calculo: dadosCalculo,
-      componentes_adicionais: adicionaisSelecionados,
+      componentes_adicionais: adicionaisSelecionados, // Agora é um array de objetos
       resumo: `${tipoOption.textContent} - ${Object.values(dadosCalculo).join(' x ')}`
     };
-    
+
     await addPeca(currentAmbienteIndex, currentMovelIndex, dadosPeca);
     closeModalPeca();
   });
@@ -1051,12 +1025,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnImprimir) {
     btnImprimir.addEventListener('click', (e) => {
       e.preventDefault();
-      
+
       if (ambientes.length === 0) {
         alert('Adicione pelo menos um ambiente antes de imprimir');
         return;
       }
-      
+
       imprimirOrcamento();
     });
   }
@@ -1073,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ========== INICIALIZAÇÃO ==========
-  
+
   render();
   document.getElementById('cliente').focus();
 });

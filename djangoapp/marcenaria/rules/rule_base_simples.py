@@ -1,8 +1,11 @@
+import pprint
+
 class BaseSimplesRule:
     """Classe com as regras para calcular Base Simples"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
+    COMPONENTES_ADICIONAIS = ["AC-002"]   # Fita
     
     # Campos necessários para o cálculo
     CAMPOS_NECESSARIOS = [
@@ -35,17 +38,12 @@ class BaseSimplesRule:
     ]
     
     @staticmethod
-    def calcular(dados, componente):
-        """
-        Calcula a quantidade de material necessária
-        
-        Args:
-            dados (dict): Dicionário com quantidade, altura, largura
-            componente (Componente): Componente selecionado
-            
-        Returns:
-            dict: Resultado do cálculo
-        """
+    def calcular(dados, componente, componentes_adicionais=None):
+        print("\n========== CALCULANDO BASE SIMPLES ==========")
+        print("ID do componente principal:", componente.id)
+        print("IDs dos componentes adicionais:", componentes_adicionais)
+        print("===========================================\n")
+       
         quantidade = float(dados.get('quantidade', 0))
         altura = float(dados.get('altura', 0))
         largura = float(dados.get('largura', 0))
@@ -76,6 +74,10 @@ class BaseSimplesRule:
         if area_componente > 0:
             chapas_necessarias = round(area_total / area_componente + 0.5)  # Arredonda para cima
         
+        # Calcular custo total
+        custo_unitario = float(getattr(componente, 'custo_unitario', 0))
+        custo_total = area_total * custo_unitario
+
         return {
             'sucesso': True,
             'area_por_peca': area_por_peca,
@@ -83,5 +85,6 @@ class BaseSimplesRule:
             'chapas_necessarias': chapas_necessarias,
             'quantidade_utilizada': area_total,
             'unidade': 'm²',
+            'custo_total': round(custo_total, 2),
             'resumo': f'{quantidade}x peças de {altura}cm x {largura}cm = {area_total:.4f} m²'
         }

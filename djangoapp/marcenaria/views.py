@@ -8,7 +8,12 @@ from django.utils import timezone
 from decimal import Decimal
 from .models import Orcamento, Ambiente, TipoPeca, Componente, Movel, TipoComponente
 from .utils.rule_manager import RuleManager
+from .models import Componente
+from django.views.decorators.csrf import csrf_exempt
 import json
+from django.views.decorators.http import require_POST
+
+
 
 @staff_member_required
 def orcamento_create(request):
@@ -294,3 +299,52 @@ def get_campos_calculo_peca(request, tipo_peca_codigo):
             'sucesso': False,
             'erro': str(e)
         }, status=400)
+
+@staff_member_required
+@require_POST
+def calcular_peca_api(request):
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        tipo_peca_codigo = data.get('tipo_peca_codigo')
+        dados_calculo = data.get('dados_calculo', {})
+        componente_id = data.get('componente_id')
+        componentes_adicionais = data.get('componentes_adicionais', None)
+
+        print("Dados recebidos para cálculo da peça--------------:")
+        print(f"Tipo da peça base simples/base dupla/fundo etc: {tipo_peca_codigo}")
+        print(f"Componente principal: {componente_id}")
+        print(f"Dados para os cálculos das peças: {dados_calculo}")
+        print(f"Componentes Adicionais das peças: {componentes_adicionais}")
+        print("Dados recebidos para cálculo da peça--------------:")
+        
+        
+        if not tipo_peca_codigo or not componente_id:
+            return JsonResponse({'sucesso': False, 'erro': 'tipo_peca_codigo e componente_id são obrigatórios'}, status=400)
+
+        # Buscar o componente principal pelo id
+        componente = Componente.objects.get(id=componente_id)
+
+        # Buscar os componentes adicionais pelo id, se houver
+        adicionais_objs = None
+        if componentes_adicionais and isinstance(componentes_adicionais, list) and len(componentes_adicionais) > 0:
+            adicionais_objs = []
+            for adicional_id in componentes_adicionais:
+                try:
+                    adicional_obj = Componente.objects.get(id=adicional_id)
+                    adicionais_objs.append(adicional_obj)
+                except Componente.DoesNotExist:
+                    continue
+
+        # Chama a regra de cálculo passando o objeto do adicional (ou lista de objetos)
+        rule_class = RuleManager.get_rule_class(tipo_peca_codigo)
+        if rule_class and hasattr(rule_class, 'calcular'):
+            # Se houver adicionais, passar a lista, senão None
+            resultado = rule_class.calcular(dados_calculo, componente, adicionais_objs)
+            resultado['sucesso'] = True if not resultado.get('erro') else False
+            return JsonResponse(resultado)
+        else:
+            return JsonResponse({'sucesso': False, 'erro': 'Regra de cálculo não encontrada'}, status=400)
+    except Componente.DoesNotExist:
+        return JsonResponse({'sucesso': False, 'erro': 'Componente não encontrado'}, status=404)
+    except Exception as e:
+        return JsonResponse({'sucesso': False, 'erro': str(e)}, status=400)
