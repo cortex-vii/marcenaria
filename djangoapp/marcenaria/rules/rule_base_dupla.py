@@ -3,6 +3,7 @@ class BaseDuplaRule:
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
+    COMPONENTES_ADICIONAIS = ["AC-002"]   # Fita
     
     # Campos necessários para o cálculo
     CAMPOS_NECESSARIOS = [
@@ -31,11 +32,11 @@ class BaseDuplaRule:
             'min': 0.1,
             'step': 0.1,
             'help': 'Largura da peça em centímetros'
-        }
+        },
     ]
     
     @staticmethod
-    def calcular(dados, componente):
+    def calcular(dados, componente, componente_adicional=None):
         """
         Calcula a quantidade de material necessária para base dupla
         
@@ -76,7 +77,8 @@ class BaseDuplaRule:
         if area_componente > 0:
             chapas_necessarias = round(area_total / area_componente + 0.5)  # Arredonda para cima
         
-        return {
+        # Defina resultado antes do cálculo do adicional
+        resultado = {
             'sucesso': True,
             'area_por_peca': area_por_peca,
             'area_total': area_total,
@@ -85,3 +87,17 @@ class BaseDuplaRule:
             'unidade': 'm²',
             'resumo': f'{quantidade}x peças duplas de {altura}cm x {largura}cm = {area_total:.4f} m²'
         }
+
+        # Cálculo do adicional (fita)
+        if componente_adicional and componente_adicional.unidade_medida == 'LINEAR':
+            perimetro_peca = 2 * (altura_m + largura_m)
+            perimetro_total = perimetro_peca * quantidade
+            resultado['adicional'] = {
+                'codigo': componente_adicional.tipo_componente.codigo,
+                'nome': componente_adicional.nome,
+                'comprimento_total': perimetro_total,
+                'unidade': 'm',
+                'resumo': f'{perimetro_total:.2f} m de fita para {quantidade} peças'
+            }
+
+        return resultado

@@ -6,7 +6,7 @@ from django.contrib.admin.sites import site as admin_site
 from django.http import JsonResponse
 from django.utils import timezone
 from decimal import Decimal
-from .models import Orcamento, Ambiente, TipoPeca, Componente, Movel
+from .models import Orcamento, Ambiente, TipoPeca, Componente, Movel, TipoComponente
 from .utils.rule_manager import RuleManager
 import json
 
@@ -210,36 +210,64 @@ def orcamento_create(request):
 @staff_member_required
 def get_componentes_por_tipo_peca(request, tipo_peca_codigo):
     """
-    API que retorna os componentes disponíveis para um tipo de peça
+    API que retorna os componentes disponíveis e adicionais para um tipo de peça,
+    sendo os adicionais separados por código.
     """
     try:
-        # Obter componentes disponíveis através do RuleManager
+        # Componentes principais
         componentes_codigos = RuleManager.get_componentes_disponiveis(tipo_peca_codigo)
-        
-        # Buscar os componentes no banco
         componentes = Componente.objects.filter(
             tipo_componente__codigo__in=componentes_codigos,
             tipo_componente__ativo=True
         ).select_related('tipo_componente', 'fornecedor')
-        
-        # Serializar os dados
+
         componentes_data = []
         for comp in componentes:
             componentes_data.append({
                 'id': comp.id,
                 'nome': comp.nome,
+                'tipo_codigo': comp.tipo_componente.codigo,
                 'tipo_nome': comp.tipo_componente.nome,
                 'fornecedor_nome': comp.fornecedor.nome if comp.fornecedor else 'Sem fornecedor',
                 'preco_bruto': float(comp.preco_bruto),
                 'custo_unitario': float(comp.custo_unitario),
                 'unidade_medida': comp.get_unidade_medida_display(),
             })
-        
+
+        # Componentes adicionais separados por código
+        adicionais_codigos = []
+        rule_class = RuleManager.get_rule_class(tipo_peca_codigo)
+        if rule_class and hasattr(rule_class, 'COMPONENTES_ADICIONAIS'):
+            adicionais_codigos = rule_class.COMPONENTES_ADICIONAIS
+
+        adicionais_dict = {}
+        for codigo in adicionais_codigos:
+            tipo = TipoComponente.objects.filter(codigo=codigo).first()
+            nome = tipo.nome if tipo else ""
+            componentes = Componente.objects.filter(tipo_componente__codigo=codigo, tipo_componente__ativo=True).select_related('tipo_componente', 'fornecedor')
+            adicionais_dict[codigo] = {
+                "codigo": codigo,
+                "nome": nome,
+                "componentes": [
+                    {
+                        "id": c.id,
+                        "nome": c.nome,
+                        "tipo_codigo": c.tipo_componente.codigo,
+                        "tipo_nome": c.tipo_componente.nome,
+                        "fornecedor_nome": c.fornecedor.nome if c.fornecedor else 'Sem fornecedor',
+                        "preco_bruto": float(c.preco_bruto),
+                        "custo_unitario": float(c.custo_unitario),
+                        "unidade_medida": c.get_unidade_medida_display(),
+                    }
+                    for c in componentes
+                ]
+            }
+
         return JsonResponse({
             'sucesso': True,
-            'componentes': componentes_data
+            'componentes': componentes_data,
+            'componentes_adicionais': adicionais_dict
         })
-        
     except Exception as e:
         return JsonResponse({
             'sucesso': False,

@@ -13,13 +13,8 @@ class RuleManager:
     @classmethod
     def get_rule_class(cls, tipo_peca_codigo):
         """
-        Obtém a classe de regra para um tipo de peça
-        
-        Args:
-            tipo_peca_codigo (str): Código do tipo de peça (ex: 'PC-001')
-            
-        Returns:
-            class or None: Classe da regra ou None se não encontrada
+        A função get_rule_class do RuleManager é responsável por localizar e 
+        retornar a classe Python que implementa as regras de cálculo para um determinado tipo de peça.
         """
         if tipo_peca_codigo in cls._rules_cache:
             return cls._rules_cache[tipo_peca_codigo]

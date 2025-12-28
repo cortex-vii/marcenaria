@@ -759,6 +759,8 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       const response = await fetch(`/marcenaria/api/componentes/${tipoPecaCodigo}/`);
       const data = await response.json();
+      console.log(" componentes disponíveis :", data);
+      
       
       if (data.sucesso) {
         const select = document.getElementById('componentePeca');
@@ -781,6 +783,59 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('Erro ao carregar componentes');
     }
   }
+
+  async function carregarComponentesAdicionais(tipoPecaCodigo) {
+  try {
+    const response = await fetch(`/marcenaria/api/componentes/${tipoPecaCodigo}/`);
+    const data = await response.json();
+
+    if (data.sucesso && data.componentes_adicionais) {
+      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+      adicionaisContainer.innerHTML = '';
+
+      Object.values(data.componentes_adicionais).forEach(grupo => {
+        // Título do grupo (nome do componente)
+        const label = document.createElement('label');
+        label.className = 'label';
+        label.textContent = grupo.nome + ' *';
+
+        // Select dos componentes adicionais
+        const select = document.createElement('select');
+        select.className = 'input-field';
+        select.id = `componenteAdicional_${grupo.codigo}`;
+        select.name = `componenteAdicional_${grupo.codigo}`;
+        select.required = true;
+
+        select.innerHTML = '<option value="">Selecione...</option>';
+        grupo.componentes.forEach(comp => {
+          const option = document.createElement('option');
+          option.value = comp.id;
+          option.textContent = `${comp.nome} (R$ ${comp.custo_unitario})`;
+          option.dataset.componente = JSON.stringify(comp);
+          select.appendChild(option);
+        });
+
+        // Adicionar ao container
+        adicionaisContainer.appendChild(label);
+        adicionaisContainer.appendChild(select);
+
+        // Evento para cálculo em tempo real se necessário
+        select.addEventListener('change', () => {
+          if (currentCalculoTimeout) clearTimeout(currentCalculoTimeout);
+          currentCalculoTimeout = setTimeout(calcularEmTempoReal, 300);
+        });
+      });
+
+      adicionaisContainer.style.display = 'block';
+    } else {
+      document.getElementById('componentesAdicionaisContainer').style.display = 'none';
+    }
+  } catch (error) {
+    console.error('Erro ao carregar componentes adicionais:', error);
+    alert('Erro ao carregar componentes adicionais');
+  }
+}
+
 
   async function carregarCamposCalculo(tipoPecaCodigo) {
     try {
@@ -908,6 +963,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (tipoCodigo) {
       carregarComponentes(tipoCodigo);
       carregarCamposCalculo(tipoCodigo);
+      carregarComponentesAdicionais(tipoCodigo);
     } else {
       document.getElementById('componentesContainer').style.display = 'none';
       document.getElementById('camposCalculoContainer').innerHTML = '';
@@ -949,6 +1005,24 @@ document.addEventListener('DOMContentLoaded', function() {
       dadosCalculo[campo.name] = campo.value;
     }
 
+    // Coletar componentes adicionais selecionados
+    const adicionaisSelecionados = {};
+    const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+    const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
+    for (let select of selectsAdicionais) {
+      if (select.required && !select.value) {
+        alert('Selecione o componente adicional: ' + select.previousElementSibling.textContent);
+        select.focus();
+        return;
+      }
+      const compData = JSON.parse(select.options[select.selectedIndex].dataset.componente);
+      adicionaisSelecionados[select.id.replace('componenteAdicional_', '')] = {
+        id: select.value,
+        nome: compData.nome,
+        custo_unitario: compData.custo_unitario
+      };
+    }
+    
     // Preparar dados da peça
     const tipoOption = tipoPeca.options[tipoPeca.selectedIndex];
     const compOption = componentePeca.options[componentePeca.selectedIndex];
@@ -961,6 +1035,7 @@ document.addEventListener('DOMContentLoaded', function() {
       componente_nome: componenteData.nome,
       componente_preco_unitario: componenteData.custo_unitario,
       dados_calculo: dadosCalculo,
+      componentes_adicionais: adicionaisSelecionados,
       resumo: `${tipoOption.textContent} - ${Object.values(dadosCalculo).join(' x ')}`
     };
     

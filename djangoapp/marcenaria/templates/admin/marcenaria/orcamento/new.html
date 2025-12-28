@@ -175,12 +175,27 @@
           </select>
         </div>
 
+        <!-- Componentes disponíveis para o tipo de peça -->
         <div id="componentesContainer" style="display: none;">
           <div class="form-row">
             <label class="label" for="componentePeca">Componente</label>
             <select id="componentePeca" class="input-field">
               <option value="">Selecione...</option>
             </select>
+          </div>
+        </div>
+        
+        <!-- Componentes adicionais obrigatórios -->
+        <div id="componentesAdicionaisContainer" class="mb-4" style="display:none">
+          <div class="adicionais-header">
+            <strong>Componentes Adicionais</strong>
+            <span class="help-text">Adicione componentes extras conforme necessário.</span>
+          </div>
+          <div class="adicionais-list" id="adicionaisList">
+            <div class="empty-state">Nenhum componente adicional adicionado</div>
+          </div>
+          <div class="adicionais-actions">
+            <button type="button" class="btn btn-secondary" id="btnAddComponenteAdicional">+ Adicionar componente</button>
           </div>
         </div>
 
