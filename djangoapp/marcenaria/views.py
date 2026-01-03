@@ -309,14 +309,7 @@ def calcular_peca_api(request):
         dados_calculo = data.get('dados_calculo', {})
         componente_id = data.get('componente_id')
         componentes_adicionais = data.get('componentes_adicionais', None)
-
-        print("Dados recebidos para cálculo da peça--------------:")
-        print(f"Tipo da peça base simples/base dupla/fundo etc: {tipo_peca_codigo}")
-        print(f"Componente principal: {componente_id}")
-        print(f"Dados para os cálculos das peças: {dados_calculo}")
-        print(f"Componentes Adicionais das peças: {componentes_adicionais}")
-        print("Dados recebidos para cálculo da peça--------------:")
-        
+      
         
         if not tipo_peca_codigo or not componente_id:
             return JsonResponse({'sucesso': False, 'erro': 'tipo_peca_codigo e componente_id são obrigatórios'}, status=400)
@@ -330,9 +323,9 @@ def calcular_peca_api(request):
             adicionais_objs = []
             for adicional_id in componentes_adicionais:
                 try:
-                    adicional_obj = Componente.objects.get(id=adicional_id)
+                    adicional_obj = Componente.objects.get(id=int(adicional_id))
                     adicionais_objs.append(adicional_obj)
-                except Componente.DoesNotExist:
+                except (Componente.DoesNotExist, ValueError):
                     continue
 
         # Chama a regra de cálculo passando o objeto do adicional (ou lista de objetos)

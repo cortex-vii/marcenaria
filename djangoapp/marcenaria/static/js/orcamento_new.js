@@ -382,27 +382,46 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  function mostrarResultadoCalculo(resultado) {
+function mostrarResultadoCalculo(resultado) {
     const container = document.getElementById('calculoResultado');
     const detalhes = document.getElementById('calculoDetalhes');
     const custo = document.getElementById('calculoCusto');
 
     if (resultado.sucesso) {
-      container.className = 'calculo-resultado calculo-sucesso';
-      detalhes.innerHTML = `
-        <div>Área por peça: ${resultado.area_por_peca?.toFixed(4) || 0} m²</div>
-        <div>Área total: ${resultado.area_total?.toFixed(4) || 0} m²</div>
-        <div>${resultado.resumo || ''}</div>
-      `;
-      custo.textContent = `Custo Total: R$ ${(resultado.custo_total || 0).toFixed(2)}`;
+        container.className = 'calculo-resultado calculo-sucesso';
+
+        let html = `
+            <div>Área por peça: ${resultado.area_por_peca?.toFixed(4) || 0} m²</div>
+            <div>Área total: ${resultado.area_total?.toFixed(4) || 0} m²</div>
+            <div>${resultado.resumo || ''}</div>
+            <hr>
+            <div><strong>Detalhamento dos componentes:</strong></div>
+            <ul style="margin:0;padding-left:18px">
+        `;
+        if (Array.isArray(resultado.detalhes)) {
+            resultado.detalhes.forEach(item => {
+                html += `<li>
+                    <strong>${item.componente || ''}</strong>
+                    ${item.tipo ? `(${item.tipo})` : ''}
+                    ${item.quantidade !== undefined ? `: ${item.quantidade.toFixed(2)} ${item.unidade || ''}` : ''}
+                    ${item.quantidade_utilizada !== undefined ? `: ${item.quantidade_utilizada.toFixed(2)} ${item.unidade || ''}` : ''}
+                    - <b>R$ ${(item.custo || item.custo_total || 0).toFixed(2)}</b>
+                    <br><span style="color: #888">${item.resumo || ''}</span>
+                </li>`;
+            });
+        }
+        html += '</ul>';
+
+        detalhes.innerHTML = html;
+        custo.textContent = `Custo Total: R$ ${(resultado.custo_total || 0).toFixed(2)}`;
     } else {
-      container.className = 'calculo-resultado calculo-erro';
-      detalhes.textContent = resultado.erro || 'Erro no cálculo';
-      custo.textContent = '';
+        container.className = 'calculo-resultado calculo-erro';
+        detalhes.textContent = resultado.erro || 'Erro no cálculo';
+        custo.textContent = '';
     }
 
     container.style.display = 'block';
-  }
+}
 
   async function calcularEmTempoReal() {
     const tipoPeca = document.getElementById('tipoPeca').value;

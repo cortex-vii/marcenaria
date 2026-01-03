@@ -1,4 +1,6 @@
-import pprint
+from .calc_tipos_componentes.calc_fita import calcular_custo_fita
+from .calc_tipos_componentes.calc_mdf import calcular_custo_mdf
+from ..utils.data_format import format_decimal
 
 class BaseSimplesRule:
     """Classe com as regras para calcular Base Simples"""
@@ -43,48 +45,51 @@ class BaseSimplesRule:
         print("ID do componente principal:", componente.id)
         print("IDs dos componentes adicionais:", componentes_adicionais)
         print("===========================================\n")
-       
+
+        # Cálculo MDF (principal)
+        resultado_mdf = calcular_custo_mdf(dados, componente)
+        if resultado_mdf.get('erro'):
+            return {'erro': resultado_mdf['erro']}
+
+        def parse_float(val):
+            if isinstance(val, str):
+                return float(val.replace(',', '.'))
+            return float(val)
+
+        area_por_peca = parse_float(resultado_mdf['quantidade_utilizada']) / float(dados.get('quantidade', 1))
+        area_total = parse_float(resultado_mdf['quantidade_utilizada'])
         quantidade = float(dados.get('quantidade', 0))
         altura = float(dados.get('altura', 0))
         largura = float(dados.get('largura', 0))
-        
-        # Validações
-        if quantidade <= 0:
-            return {'erro': 'Quantidade deve ser maior que zero'}
-        if altura <= 0:
-            return {'erro': 'Altura deve ser maior que zero'}
-        if largura <= 0:
-            return {'erro': 'Largura deve ser maior que zero'}
-        
-        # Converter cm para metros
-        altura_m = altura / 100
-        largura_m = largura / 100
-        
-        # Calcular área total necessária
-        area_por_peca = altura_m * largura_m
-        area_total = area_por_peca * quantidade
-        
-        # Verificar se o componente tem área suficiente (se for chapa)
-        area_componente = 0
-        if componente.unidade_medida == 'QUADRADO':
-            area_componente = float(componente.altura * componente.largura)
-        
-        # Calcular quantas chapas são necessárias
-        chapas_necessarias = 0
-        if area_componente > 0:
-            chapas_necessarias = round(area_total / area_componente + 0.5)  # Arredonda para cima
-        
-        # Calcular custo total
-        custo_unitario = float(getattr(componente, 'custo_unitario', 0))
-        custo_total = area_total * custo_unitario
+
+        custo_adicionais = 0
+        detalhes_adicionais = []
+        if componentes_adicionais:
+            for comp in componentes_adicionais:
+                if comp.nome.upper().startswith('FITA'):
+                    resultado_fita = calcular_custo_fita(dados, comp)
+                    custo_adicionais += resultado_fita['custo_total']
+                    detalhes_adicionais.append(resultado_fita)
+
+        custo_total = resultado_mdf['custo_total'] + custo_adicionais
 
         return {
             'sucesso': True,
-            'area_por_peca': area_por_peca,
-            'area_total': area_total,
-            'chapas_necessarias': chapas_necessarias,
-            'quantidade_utilizada': area_total,
+            'area_por_peca': format_decimal(area_por_peca),
+            'area_total': format_decimal(area_total),
+            'quantidade_utilizada': format_decimal(area_total),
             'unidade': 'm²',
-            'custo_total': round(custo_total, 2),
-            'resumo': f'{quantidade}x peças de {altura}cm x {largura}cm = {area_total:.4f} m²'
+            'custo_total': format_decimal(custo_total),
+            'detalhes': [
+                {
+                    'componente': componente.nome,
+                    'tipo': 'principal',
+                    'quantidade': format_decimal(area_total),
+                    'unidade': 'm²',
+                    'custo': format_decimal(resultado_mdf['custo_total']),
+                    'resumo': resultado_mdf['resumo']
+                },
+                *detalhes_adicionais
+            ],
+            'resumo': f"{format_decimal(quantidade)}x peças de {format_decimal(altura)}cm x {format_decimal(largura)}cm = {format_decimal(area_total)} m²"
         }
