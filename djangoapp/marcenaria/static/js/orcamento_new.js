@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let currentMovelIndex = null;
   let currentCalculoTimeout = null;
 
+  // Carrega ambientes do campo hidden apenas na inicialização
   try {
     ambientes = JSON.parse(hidden.value || '[]');
   } catch (e) {
@@ -89,6 +90,21 @@ document.addEventListener('DOMContentLoaded', function () {
         const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
         return acc + quantidade;
       }, 0);
+      
+      // Calcular custo base do móvel
+      let custoBase = 0;
+      (movel.pecas || []).forEach(peca => {
+        let custo = peca.resultado_calculo?.custo_total || 0;
+        if (typeof custo === 'string') {
+          custo = parseFloat(custo);
+        }
+        custoBase += custo;
+      });
+      
+      // Aplicar margem de lucro
+      const margemLucro = parseFloat(movel.margem_lucro || 0);
+      const valorMargem = custoBase * (margemLucro / 100);
+      const custoFinal = custoBase + valorMargem;
 
       return `
         <div class="movel-item">
@@ -96,8 +112,16 @@ document.addEventListener('DOMContentLoaded', function () {
             <h4>
               ${movel.nome}
               ${totalPecasFisicas > 0 ? `<span class="movel-contador-pecas">${totalPecasFisicas}</span>` : ''}
+              ${margemLucro > 0 ? `<span class="movel-margem" style="background:#10b981;color:white;padding:2px 8px;border-radius:12px;font-size:11px;margin-left:8px">${margemLucro.toFixed(2)}%</span>` : ''}
             </h4>
             <div class="movel-actions">
+              <button type="button" class="btn btn-secondary btn-sm" 
+                      data-ambiente="${ambienteIdx}" 
+                      data-movel="${movelIdx}" 
+                      data-action="edit-margem"
+                      title="Editar margem de lucro">
+                ✏️ Margem
+              </button>
               <button type="button" class="btn btn-primary btn-sm" 
                       data-ambiente="${ambienteIdx}" 
                       data-movel="${movelIdx}" 
@@ -112,6 +136,13 @@ document.addEventListener('DOMContentLoaded', function () {
               </button>
             </div>
           </div>
+          ${margemLucro > 0 && custoBase > 0 ? `
+            <div style="padding:8px 12px;background:#f0fdf4;border-left:3px solid #10b981;margin:8px 12px;font-size:13px">
+              <div>Custo base: R$ ${custoBase.toFixed(2).replace('.', ',')}</div>
+              <div>Margem (${margemLucro.toFixed(2)}%): R$ ${valorMargem.toFixed(2).replace('.', ',')}</div>
+              <div style="font-weight:600;color:#059669">Valor final: R$ ${custoFinal.toFixed(2).replace('.', ',')}</div>
+            </div>
+          ` : ''}
           <div class="pecas-container">
             ${renderPecas(movel.pecas || [], ambienteIdx, movelIdx)}
           </div>
@@ -121,6 +152,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderPecas(pecas, ambienteIdx, movelIdx) {
+        // Função para exibir número com vírgula na visualização
+        function formatNumberView(val, casas = 2) {
+          if (typeof val === 'string') val = parseFloat(val);
+          if (isNaN(val)) val = 0;
+          return val.toFixed(casas).replace('.', ',');
+        }
     if (!pecas || pecas.length === 0) {
       return '<div class="empty-pecas">Nenhuma peça adicionada</div>';
     }
@@ -153,8 +190,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const listItems = pecas.map((peca, pecaIdx) => {
       const iconInfo = getTipoPecaIcon(peca.tipo_codigo);
       const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
-      const custo = peca.resultado_calculo?.custo_total || 0;
+      // Parse custo as float (agora backend sempre retorna ponto)
+      let custo = peca.resultado_calculo?.custo_total || 0;
+      if (typeof custo === 'string') {
+        custo = parseFloat(custo);
+      }
       const resumoCalculo = peca.resultado_calculo?.resumo || '';
+
+      // Função para converter string com vírgula para float
+      function parseFloatComma(val) {
+        if (typeof val === 'string') {
+          return parseFloat(val.replace(',', '.'));
+        }
+        return typeof val === 'number' ? val : 0;
+      }
 
       // Detalhes expandidos do cálculo
       const detalhesExpandidos = peca.resultado_calculo ? `
@@ -163,25 +212,40 @@ document.addEventListener('DOMContentLoaded', function () {
             ${peca.resultado_calculo.area_por_peca ? `
               <div class="calculo-item">
                 <span class="calculo-label">Área por peça:</span>
-                <span class="calculo-valor">${peca.resultado_calculo.area_por_peca.toFixed(4)} m²</span>
+                <span class="calculo-valor">${formatNumberView(peca.resultado_calculo.area_por_peca, 2)} m²</span>
               </div>
             ` : ''}
             ${peca.resultado_calculo.area_total ? `
               <div class="calculo-item">
                 <span class="calculo-label">Área total:</span>
-                <span class="calculo-valor">${peca.resultado_calculo.area_total.toFixed(4)} m²</span>
+                <span class="calculo-valor">${formatNumberView(peca.resultado_calculo.area_total, 2)} m²</span>
               </div>
             ` : ''}
             ${peca.resultado_calculo.quantidade_utilizada ? `
               <div class="calculo-item">
                 <span class="calculo-label">Material usado:</span>
-                <span class="calculo-valor">${peca.resultado_calculo.quantidade_utilizada.toFixed(4)} ${peca.resultado_calculo.unidade || 'm²'}</span>
+                <span class="calculo-valor">${formatNumberView(peca.resultado_calculo.quantidade_utilizada, 2)} ${peca.resultado_calculo.unidade || 'm²'}</span>
               </div>
             ` : ''}
             <div class="calculo-item">
               <span class="calculo-label">Resumo:</span>
-              <span class="calculo-valor">${resumoCalculo}</span>
+              <span class="calculo-valor">${resumoCalculo.replace(/([0-9]+\.[0-9]+)/g, v => v.replace('.', ','))}</span>
             </div>
+            ${Array.isArray(peca.resultado_calculo.detalhes) && peca.resultado_calculo.detalhes.length > 1 ? `
+              <div class="calculo-item" style="margin-top:8px;">
+                <span class="calculo-label">Adicionais:</span>
+                <ul style="margin:0 0 0 12px;padding:0;list-style:disc;">
+                  ${peca.resultado_calculo.detalhes.slice(1).map(adic => `
+                    <li>
+                      <b>${adic.componente || ''}</b>
+                      ${adic.quantidade_utilizada ? `: ${formatNumberView(adic.quantidade_utilizada, 2)} ${adic.unidade || ''}` : ''}
+                      ${adic.custo_total ? `- R$ ${formatNumberView(adic.custo_total, 2)}` : ''}
+                      <br><span style="color:#888">${adic.resumo ? adic.resumo.replace(/([0-9]+\.[0-9]+)/g, v => parseFloat(v).toFixed(2).replace('.', ',')) : ''}</span>
+                    </li>
+                  `).join('')}
+                </ul>
+              </div>
+            ` : ''}
           </div>
         </div>
       ` : '';
@@ -201,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function () {
             <span class="badge badge-primary">${quantidade}x</span>
           </div>
           <div class="peca-valor-col">
-            R$ ${custo.toFixed(2)}
+            R$ ${formatNumberView(custo, 2)}
           </div>
           <div class="peca-actions">
             <button type="button" class="btn btn-secondary btn-xs" 
@@ -243,6 +307,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
       moveis.forEach((movel, movelIdx) => {
         const pecas = movel.pecas || [];
+        
+        // Calcular custo base do móvel
+        let custoBaseMovel = 0;
 
         pecas.forEach((peca, pecaIdx) => {
           // Contar quantidade física de peças, não registros
@@ -253,10 +320,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
             const custo = parseFloat(peca.resultado_calculo.custo_total);
-            valorTotal += custo;
+            custoBaseMovel += custo;
             console.log(`Peça ${pecaIdx}: R$ ${custo}`);
           }
         });
+        
+        // Aplicar margem de lucro ao móvel
+        const margemLucro = parseFloat(movel.margem_lucro || 0);
+        const valorMargem = custoBaseMovel * (margemLucro / 100);
+        const custoFinalMovel = custoBaseMovel + valorMargem;
+        
+        console.log(`Móvel ${movelIdx}: Custo base R$ ${custoBaseMovel}, Margem ${margemLucro}%, Valor final R$ ${custoFinalMovel}`);
+        
+        valorTotal += custoFinalMovel;
       });
     });
 
@@ -289,6 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
+        let custoBaseMovel = 0;
 
         pecas.forEach(peca => {
           // Contar peças físicas
@@ -296,9 +373,16 @@ document.addEventListener('DOMContentLoaded', function () {
           totalPecasAmbiente += quantidadeFisica;
 
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
-            custoAmbiente += parseFloat(peca.resultado_calculo.custo_total);
+            custoBaseMovel += parseFloat(peca.resultado_calculo.custo_total);
           }
         });
+        
+        // Aplicar margem de lucro
+        const margemLucro = parseFloat(movel.margem_lucro || 0);
+        const valorMargem = custoBaseMovel * (margemLucro / 100);
+        const custoFinalMovel = custoBaseMovel + valorMargem;
+        
+        custoAmbiente += custoFinalMovel;
       });
 
       const percentualDoTotal = ambientes.reduce((total, amb) => {
@@ -306,11 +390,18 @@ document.addEventListener('DOMContentLoaded', function () {
         let ambCusto = 0;
         ambMoveis.forEach(movel => {
           const pecas = movel.pecas || [];
+          let custoBaseMovel = 0;
+          
           pecas.forEach(peca => {
             if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
-              ambCusto += parseFloat(peca.resultado_calculo.custo_total);
+              custoBaseMovel += parseFloat(peca.resultado_calculo.custo_total);
             }
           });
+          
+          // Aplicar margem ao móvel
+          const margemLucro = parseFloat(movel.margem_lucro || 0);
+          const custoFinalMovel = custoBaseMovel * (1 + margemLucro / 100);
+          ambCusto += custoFinalMovel;
         });
         return total + ambCusto;
       }, 0);
@@ -330,18 +421,22 @@ document.addEventListener('DOMContentLoaded', function () {
           return acc + parseInt(peca.dados_calculo?.quantidade || 1);
         }, 0);
 
-        let custoMovel = 0;
+        let custoBaseMovel = 0;
         (movel.pecas || []).forEach(peca => {
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
-            custoMovel += parseFloat(peca.resultado_calculo.custo_total);
+            custoBaseMovel += parseFloat(peca.resultado_calculo.custo_total);
           }
         });
+        
+        // Aplicar margem de lucro
+        const margemLucro = parseFloat(movel.margem_lucro || 0);
+        const custoFinalMovel = custoBaseMovel * (1 + margemLucro / 100);
 
         return `
                 <div class="movel-resumo">
                   📦 ${movel.nome} 
                   <span class="badge badge-warning">${qtdPecasFisicas} peças</span>
-                  <span style="color: #059669; font-weight: 600; font-size: 11px;">R$ ${custoMovel.toFixed(2)}</span>
+                  <span style="color: #059669; font-weight: 600; font-size: 11px;">R$ ${custoFinalMovel.toFixed(2).replace('.', ',')}</span>
                 </div>
               `;
       }).join('')}
@@ -382,46 +477,53 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-function mostrarResultadoCalculo(resultado) {
+  function mostrarResultadoCalculo(resultado) {
     const container = document.getElementById('calculoResultado');
     const detalhes = document.getElementById('calculoDetalhes');
     const custo = document.getElementById('calculoCusto');
 
     if (resultado.sucesso) {
-        container.className = 'calculo-resultado calculo-sucesso';
+      container.className = 'calculo-resultado calculo-sucesso';
 
-        let html = `
-            <div>Área por peça: ${resultado.area_por_peca?.toFixed(4) || 0} m²</div>
-            <div>Área total: ${resultado.area_total?.toFixed(4) || 0} m²</div>
-            <div>${resultado.resumo || ''}</div>
-            <hr>
-            <div><strong>Detalhamento dos componentes:</strong></div>
-            <ul style="margin:0;padding-left:18px">
-        `;
-        if (Array.isArray(resultado.detalhes)) {
-            resultado.detalhes.forEach(item => {
-                html += `<li>
-                    <strong>${item.componente || ''}</strong>
-                    ${item.tipo ? `(${item.tipo})` : ''}
-                    ${item.quantidade !== undefined ? `: ${item.quantidade.toFixed(2)} ${item.unidade || ''}` : ''}
-                    ${item.quantidade_utilizada !== undefined ? `: ${item.quantidade_utilizada.toFixed(2)} ${item.unidade || ''}` : ''}
-                    - <b>R$ ${(item.custo || item.custo_total || 0).toFixed(2)}</b>
-                    <br><span style="color: #888">${item.resumo || ''}</span>
-                </li>`;
-            });
+      function parseFloatComma(val) {
+        if (typeof val === 'string') {
+          return parseFloat(val.replace(',', '.'));
         }
-        html += '</ul>';
+        return typeof val === 'number' ? val : 0;
+      }
 
-        detalhes.innerHTML = html;
-        custo.textContent = `Custo Total: R$ ${(resultado.custo_total || 0).toFixed(2)}`;
+      let html = `
+        <div>Área por peça: ${resultado.area_por_peca !== undefined ? resultado.area_por_peca : 0} m²</div>
+        <div>Área total: ${resultado.area_total !== undefined ? resultado.area_total : 0} m²</div>
+        <div>${resultado.resumo || ''}</div>
+        <hr>
+        <div><strong>Detalhamento dos componentes:</strong></div>
+        <ul style="margin:0;padding-left:18px">
+      `;
+      if (Array.isArray(resultado.detalhes)) {
+        resultado.detalhes.forEach(item => {
+          html += `<li>
+            <strong>${item.componente || ''}</strong>
+            ${item.tipo ? `(${item.tipo})` : ''}
+            ${item.quantidade !== undefined ? `: ${parseFloatComma(item.quantidade).toFixed(2)} ${item.unidade || ''}` : ''}
+            ${item.quantidade_utilizada !== undefined ? `: ${parseFloatComma(item.quantidade_utilizada).toFixed(2)} ${item.unidade || ''}` : ''}
+            - <b>R$ ${parseFloatComma(item.custo || item.custo_total || 0).toFixed(2)}</b>
+            <br><span style="color: #888">${item.resumo || ''}</span>
+          </li>`;
+        });
+      }
+      html += '</ul>';
+
+      detalhes.innerHTML = html;
+      custo.textContent = `Custo Total: R$ ${parseFloatComma(resultado.custo_total || 0).toFixed(2)}`;
     } else {
-        container.className = 'calculo-resultado calculo-erro';
-        detalhes.textContent = resultado.erro || 'Erro no cálculo';
-        custo.textContent = '';
+      container.className = 'calculo-resultado calculo-erro';
+      detalhes.textContent = resultado.erro || 'Erro no cálculo';
+      custo.textContent = '';
     }
 
     container.style.display = 'block';
-}
+  }
 
   async function calcularEmTempoReal() {
     const tipoPeca = document.getElementById('tipoPeca').value;
@@ -455,17 +557,17 @@ function mostrarResultadoCalculo(resultado) {
     const compOption = document.getElementById('componentePeca').options[document.getElementById('componentePeca').selectedIndex];
     const componenteData = JSON.parse(compOption.dataset.componente);
 
-      // Coletar componentes adicionais selecionados (enviar apenas o id)
-      const adicionaisSelecionados = [];
-      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
-      const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
-      for (let select of selectsAdicionais) {
-        if (select.required && !select.value) {
-          alert('Selecione todos os componentes adicionais obrigatórios');
-          return;
-        }
-        adicionaisSelecionados.push(select.value);
+    // Coletar componentes adicionais selecionados (enviar apenas o id)
+    const adicionaisSelecionados = [];
+    const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+    const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
+    for (let select of selectsAdicionais) {
+      if (select.required && !select.value) {
+        alert('Selecione todos os componentes adicionais obrigatórios');
+        return;
       }
+      adicionaisSelecionados.push(select.value);
+    }
 
     // Fazer cálculo
     const resultado = await calcularPeca(tipoPeca, dadosCalculo, componenteData, adicionaisSelecionados);
@@ -482,6 +584,7 @@ function mostrarResultadoCalculo(resultado) {
       return;
     }
 
+    // Sempre use o array ambientes em memória
     const existe = ambientes.some(a => a.nome.toLowerCase() === nome.toLowerCase());
     if (existe) {
       alert('Este ambiente já foi adicionado!');
@@ -505,13 +608,14 @@ function mostrarResultadoCalculo(resultado) {
     }
   }
 
-  function addMovel(ambienteIdx, nomeMovel) {
+  function addMovel(ambienteIdx, nomeMovel, margemLucro = 0) {
     if (!ambientes[ambienteIdx].moveis) {
       ambientes[ambienteIdx].moveis = [];
     }
 
     ambientes[ambienteIdx].moveis.push({
       nome: nomeMovel,
+      margem_lucro: parseFloat(margemLucro) || 0,
       pecas: []
     });
 
@@ -531,17 +635,25 @@ function mostrarResultadoCalculo(resultado) {
       ambientes[ambienteIdx].moveis[movelIdx].pecas = [];
     }
 
-    // Fazer cálculo antes de adicionar
+    // Fazer cálculo antes de adicionar, incluindo componentes adicionais
     const componenteData = {
       id: dadosPeca.componente_id,
       nome: dadosPeca.componente_nome,
       custo_unitario: dadosPeca.componente_preco_unitario
     };
 
-    const resultado = await calcularPeca(dadosPeca.tipo_codigo, dadosPeca.dados_calculo, componenteData);
+    // Enviar componentes adicionais corretamente
+    const componentesAdicionais = dadosPeca.componentes_adicionais || [];
+    const resultado = await calcularPeca(
+      dadosPeca.tipo_codigo,
+      dadosPeca.dados_calculo,
+      componenteData,
+      componentesAdicionais
+    );
     dadosPeca.resultado_calculo = resultado;
 
     ambientes[ambienteIdx].moveis[movelIdx].pecas.push(dadosPeca);
+    // Sempre render após adicionar peça para atualizar tela e campo hidden
     render();
   }
 
@@ -549,6 +661,28 @@ function mostrarResultadoCalculo(resultado) {
     const peca = ambientes[ambienteIdx].moveis[movelIdx].pecas[pecaIdx];
     if (confirm(`Remover a peça "${peca.tipo_nome}"?`)) {
       ambientes[ambienteIdx].moveis[movelIdx].pecas.splice(pecaIdx, 1);
+      render();
+    }
+  }
+
+  function editarMargemMovel(ambienteIdx, movelIdx) {
+    const movel = ambientes[ambienteIdx].moveis[movelIdx];
+    const margemAtual = movel.margem_lucro || 0;
+    
+    const novaMargemStr = prompt(
+      `Editar margem de lucro do móvel "${movel.nome}"\n\nMargem atual: ${margemAtual}%\n\nDigite a nova margem (%):`,
+      margemAtual
+    );
+    
+    if (novaMargemStr !== null) {
+      const novaMargem = parseFloat(novaMargemStr);
+      
+      if (isNaN(novaMargem) || novaMargem < 0) {
+        alert('Valor inválido! Digite um número maior ou igual a zero.');
+        return;
+      }
+      
+      ambientes[ambienteIdx].moveis[movelIdx].margem_lucro = novaMargem;
       render();
     }
   }
@@ -564,6 +698,8 @@ function mostrarResultadoCalculo(resultado) {
 
   function closeModalMovel() {
     document.getElementById('modalMovel').style.display = 'none';
+    document.getElementById('movelNome').value = '';
+    document.getElementById('movelMargemLucro').value = '0';
     currentAmbienteIndex = null;
   }
 
@@ -600,22 +736,23 @@ function mostrarResultadoCalculo(resultado) {
 
     // Calcular totais
     let valorTotal = 0;
-    let totalPecasFisicas = 0; // Mudança: contar peças físicas
+    let totalMoveis = 0;
 
     ambientes.forEach(ambiente => {
       const moveis = ambiente.moveis || [];
+      totalMoveis += moveis.length;
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
-
+        let custoBase = 0;
         pecas.forEach(peca => {
-          // Contar quantidade física de peças
-          const quantidadeFisica = parseInt(peca.dados_calculo?.quantidade || 1);
-          totalPecasFisicas += quantidadeFisica;
-
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
-            valorTotal += parseFloat(peca.resultado_calculo.custo_total);
+            custoBase += parseFloat(peca.resultado_calculo.custo_total);
           }
         });
+        // Aplicar margem de lucro
+        const margemLucro = parseFloat(movel.margem_lucro || 0);
+        const valorMargem = custoBase * (margemLucro / 100);
+        valorTotal += custoBase + valorMargem;
       });
     });
 
@@ -627,27 +764,131 @@ function mostrarResultadoCalculo(resultado) {
         <meta charset="UTF-8">
         <title>Orçamento - ${cliente}</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-          .cabecalho { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 10px; margin-bottom: 20px; }
-          .titulo { color: #2563eb; margin: 0; }
-          .info-basica { display: flex; justify-content: space-between; margin-bottom: 20px; }
-          .ambiente { margin-bottom: 20px; border: 1px solid #e5e7eb; border-radius: 8px; }
-          .ambiente-header { background: #f9fafb; padding: 12px; border-bottom: 1px solid #e5e7eb; }
-          .ambiente-nome { font-weight: bold; color: #1f2937; margin: 0; }
-          .movel { margin: 12px; border-left: 3px solid #2563eb; padding-left: 12px; }
-          .movel-nome { font-weight: bold; color: #374151; margin-bottom: 8px; }
-          .peca { margin: 6px 0; padding: 6px; background: #f9fafb; border-radius: 4px; font-size: 14px; }
-          .peca-nome { font-weight: bold; }
-          .peca-detalhes { color: #6b7280; margin-top: 2px; }
-          .peca-custo { color: #059669; font-weight: bold; margin-top: 2px; }
-          .totais { margin-top: 30px; border-top: 2px solid #2563eb; padding-top: 15px; }
-          .valor-total { font-size: 24px; font-weight: bold; color: #059669; text-align: right; }
-          .resumo-numeros { display: flex; justify-content: space-around; margin: 15px 0; }
-          .numero { text-align: center; }
-          .numero-valor { font-size: 20px; font-weight: bold; color: #1f2937; }
-          .numero-label { color: #6b7280; font-size: 12px; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            padding: 30px; 
+            color: #333; 
+            line-height: 1.6;
+          }
+          .cabecalho { 
+            text-align: center; 
+            border-bottom: 3px solid #1e40af; 
+            padding-bottom: 15px; 
+            margin-bottom: 30px; 
+          }
+          .titulo { 
+            color: #1e40af; 
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: 1px;
+          }
+          .info-basica { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+          }
+          .info-item {
+            font-size: 14px;
+          }
+          .info-item strong {
+            color: #1e40af;
+            margin-right: 8px;
+          }
+          .ambiente { 
+            margin-bottom: 25px; 
+            border: 1px solid #e2e8f0;
+            page-break-inside: avoid;
+          }
+          .ambiente-header { 
+            background: #f1f5f9; 
+            padding: 12px 15px;
+            border-bottom: 2px solid #cbd5e1;
+          }
+          .ambiente-nome { 
+            font-size: 18px;
+            font-weight: 600; 
+            color: #334155;
+          }
+          .moveis-lista {
+            padding: 15px;
+          }
+          .movel-item { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .movel-item:last-child {
+            border-bottom: none;
+          }
+          .movel-nome { 
+            font-size: 15px;
+            color: #475569;
+          }
+          .movel-preco { 
+            font-weight: 600; 
+            color: #0f766e;
+            font-size: 15px;
+          }
+          .ambiente-total {
+            background: #f8fafc;
+            padding: 10px 15px;
+            text-align: right;
+            border-top: 2px solid #cbd5e1;
+            font-weight: 600;
+            color: #334155;
+          }
+          .totais { 
+            margin-top: 40px; 
+            border-top: 3px solid #1e40af; 
+            padding-top: 20px; 
+          }
+          .resumo-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+          }
+          .info-box {
+            text-align: center;
+          }
+          .info-numero {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1e40af;
+          }
+          .info-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+          }
+          .valor-final {
+            text-align: right;
+            padding: 20px;
+            background: #1e40af;
+            color: white;
+            border-radius: 8px;
+          }
+          .valor-final-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+          }
+          .valor-final-valor {
+            font-size: 36px;
+            font-weight: 700;
+          }
           @media print {
-            body { margin: 0; }
+            body { padding: 20px; }
             .ambiente { page-break-inside: avoid; }
           }
         </style>
@@ -658,12 +899,12 @@ function mostrarResultadoCalculo(resultado) {
         </div>
         
         <div class="info-basica">
-          <div><strong>Cliente:</strong> ${cliente}</div>
-          <div><strong>Data:</strong> ${dataAtual}</div>
+          <div class="info-item"><strong>Cliente:</strong> ${cliente}</div>
+          <div class="info-item"><strong>Data:</strong> ${dataAtual}</div>
         </div>
     `;
 
-    // Adicionar ambientes
+    // Adicionar ambientes e móveis
     ambientes.forEach(ambiente => {
       const moveis = ambiente.moveis || [];
       let custoAmbiente = 0;
@@ -671,74 +912,76 @@ function mostrarResultadoCalculo(resultado) {
       // Calcular custo do ambiente
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
+        let custoBase = 0;
         pecas.forEach(peca => {
           if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
-            custoAmbiente += parseFloat(peca.resultado_calculo.custo_total);
+            custoBase += parseFloat(peca.resultado_calculo.custo_total);
           }
         });
+        // Aplicar margem de lucro
+        const margemLucro = parseFloat(movel.margem_lucro || 0);
+        const valorMargem = custoBase * (margemLucro / 100);
+        custoAmbiente += custoBase + valorMargem;
       });
 
       htmlImpressao += `
         <div class="ambiente">
           <div class="ambiente-header">
-            <h3 class="ambiente-nome">${ambiente.nome} - R$ ${custoAmbiente.toFixed(2)}</h3>
+            <div class="ambiente-nome">📍 ${ambiente.nome}</div>
           </div>
+          <div class="moveis-lista">
       `;
 
+      // Adicionar móveis
       moveis.forEach(movel => {
         const pecas = movel.pecas || [];
-
-        // Calcular total de peças físicas do móvel para impressão
-        const totalPecasFisicasMovel = pecas.reduce((acc, peca) => {
-          const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
-          return acc + quantidade;
-        }, 0);
-
-        htmlImpressao += `
-          <div class="movel">
-            <div class="movel-nome">${movel.nome} (${totalPecasFisicasMovel} peças físicas)</div>
-        `;
+        let custoBase = 0;
 
         pecas.forEach(peca => {
-          const custo = peca.resultado_calculo?.custo_total || 0;
-          const resumo = peca.resultado_calculo?.resumo || peca.resumo || '';
-          const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
-
-          htmlImpressao += `
-            <div class="peca">
-              <div class="peca-nome">${peca.tipo_nome} - ${peca.componente_nome} (${quantidade}x)</div>
-              <div class="peca-detalhes">${resumo}</div>
-              <div class="peca-custo">R$ ${custo.toFixed(2)}</div>
-            </div>
-          `;
+          if (peca.resultado_calculo && peca.resultado_calculo.custo_total) {
+            custoBase += parseFloat(peca.resultado_calculo.custo_total);
+          }
         });
+        
+        // Aplicar margem de lucro
+        const margemLucro = parseFloat(movel.margem_lucro || 0);
+        const valorMargem = custoBase * (margemLucro / 100);
+        const custoFinal = custoBase + valorMargem;
 
-        htmlImpressao += `</div>`;
+        htmlImpressao += `
+            <div class="movel-item">
+              <div class="movel-nome">${movel.nome}</div>
+              <div class="movel-preco">R$ ${custoFinal.toFixed(2).replace('.', ',')}</div>
+            </div>
+        `;
       });
 
-      htmlImpressao += `</div>`;
+      htmlImpressao += `
+          </div>
+          <div class="ambiente-total">
+            Subtotal: R$ ${custoAmbiente.toFixed(2).replace('.', ',')}
+          </div>
+        </div>
+      `;
     });
 
-    // Adicionar totais (usando peças físicas)
-    const totalMoveisFinal = ambientes.reduce((acc, amb) => acc + (amb.moveis || []).length, 0);
-
+    // Adicionar totais finais
     htmlImpressao += `
         <div class="totais">
-          <div class="resumo-numeros">
-            <div class="numero">
-              <div class="numero-valor">${ambientes.length}</div>
-              <div class="numero-label">Ambientes</div>
+          <div class="resumo-info">
+            <div class="info-box">
+              <div class="info-numero">${ambientes.length}</div>
+              <div class="info-label">Ambientes</div>
             </div>
-            <div class="numero">
-              <div class="numero-valor">${totalMoveisFinal}</div>
-              <div class="numero-label">Móveis</div>
-            </div>
-            <div class="numero">
-              <div class="numero-valor">${totalPecasFisicas}</div>
-              <div class="numero-label">Peças Físicas</div>
+            <div class="info-box">
+              <div class="info-numero">${totalMoveis}</div>
+              <div class="info-label">Móveis</div>
             </div>
           </div>
-          <div class="valor-total">TOTAL: R$ ${valorTotal.toFixed(2)}</div>
+          <div class="valor-final">
+            <div class="valor-final-label">VALOR TOTAL DO ORÇAMENTO</div>
+            <div class="valor-final-valor">R$ ${valorTotal.toFixed(2).replace('.', ',')}</div>
+          </div>
         </div>
       </body>
       </html>
@@ -938,18 +1181,23 @@ function mostrarResultadoCalculo(resultado) {
       case 'remove-peca':
         removePeca(ambienteIdx, movelIdx, pecaIdx);
         break;
+      case 'edit-margem':
+        editarMargemMovel(ambienteIdx, movelIdx);
+        break;
     }
   });
 
   // Modal Móvel
   document.getElementById('btnSalvarMovel').addEventListener('click', () => {
     const nome = document.getElementById('movelNome').value.trim();
+    const margemLucro = document.getElementById('movelMargemLucro').value;
+    
     if (!nome) {
       alert('Digite o nome do móvel');
       return;
     }
 
-    addMovel(currentAmbienteIndex, nome);
+    addMovel(currentAmbienteIndex, nome, margemLucro);
     closeModalMovel();
   });
 
@@ -1013,7 +1261,7 @@ function mostrarResultadoCalculo(resultado) {
         alert('Selecione todos os componentes adicionais obrigatórios');
         return;
       }
-        adicionaisSelecionados.push(select.value);
+      adicionaisSelecionados.push(select.value);
     }
 
     // Preparar dados da peça

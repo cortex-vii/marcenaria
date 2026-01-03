@@ -1,3 +1,5 @@
+from marcenaria.utils.data_format import format_decimal
+
 def calcular_custo_fita(dados, componente_fita):
     # Exemplo: calcula perímetro * quantidade * preço da fita
     altura = float(dados.get('altura', 0))
@@ -9,8 +11,8 @@ def calcular_custo_fita(dados, componente_fita):
     custo_total = total_metros * custo_unitario
     return {
         'componente': componente_fita.nome,
-        'quantidade_utilizada': total_metros,
+        'quantidade_utilizada': format_decimal(total_metros),
         'unidade': 'm',
-        'custo_total': round(custo_total, 2),
-        'resumo': f'{total_metros:.2f}m de fita para {quantidade} peças'
+        'custo_total': format_decimal(custo_total),
+        'resumo': f'{format_decimal(total_metros)}m de fita para {format_decimal(quantidade)} peças'
     }

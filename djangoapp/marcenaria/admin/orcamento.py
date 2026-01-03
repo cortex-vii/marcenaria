@@ -12,7 +12,7 @@ class AmbienteInline(StackedInline):
 
 @admin.register(Orcamento)
 class OrcamentoAdmin(ModelAdmin):
-    list_display = ['numero', 'cliente', 'status', 'get_total_ambientes', 'data_validade', 'created_at', 'updated_at']
+    list_display = ['numero', 'cliente', 'status', 'get_total_ambientes', 'data_validade', 'created_at', 'updated_at','valor_total', 'visualizar_button']
     list_filter = ['status', 'data_validade', 'created_at', 'updated_at']
     search_fields = ['numero', 'cliente', 'descricao']
     readonly_fields = ['numero', 'created_at', 'updated_at', 'valor_total']
@@ -48,6 +48,23 @@ class OrcamentoAdmin(ModelAdmin):
     # Redireciona o botão "Adicionar" do admin para a sua view manual
     def add_view(self, request, form_url='', extra_context=None):
         return redirect('marcenaria:orcamento_create')
+
+    # Redireciona o clique no número do orçamento para a view customizada
+    def change_view(self, request, object_id, form_url='', extra_context=None):
+        return redirect('marcenaria:orcamento_edit', pk=object_id)
+
+    def visualizar_button(self, obj):
+        """Retorna um botão HTML para visualizar o orçamento"""
+        from django.urls import reverse
+        from django.utils.html import format_html
+        
+        url = reverse('marcenaria:orcamento_edit', args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="padding: 5px 10px; background: #417690; color: white; text-decoration: none; border-radius: 4px;">📋 Visualizar</a>',
+            url
+        )
+    visualizar_button.short_description = 'Ações'
+    visualizar_button.allow_tags = True
 
     def get_total_ambientes(self, obj):
         """Retorna o total de ambientes no orçamento"""

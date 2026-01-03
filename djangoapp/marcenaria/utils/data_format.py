@@ -1,5 +1,6 @@
 def format_decimal(value, casas=2):
     try:
-        return round(float(value), casas)
+        valor = float(value)
+        return f"{valor:.{casas}f}"
     except (TypeError, ValueError):
-        return 0.0
+        return "0.00"

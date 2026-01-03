@@ -1,5 +1,6 @@
 from .calc_tipos_componentes.calc_fita import calcular_custo_fita
 from .calc_tipos_componentes.calc_mdf import calcular_custo_mdf
+from .calc_tipos_componentes.calc_parafusos import calcular_custo_parafusos
 from ..utils.data_format import format_decimal
 
 class BaseSimplesRule:
@@ -7,7 +8,13 @@ class BaseSimplesRule:
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
-    COMPONENTES_ADICIONAIS = ["AC-002"]   # Fita
+    COMPONENTES_ADICIONAIS = ["AC-002", 'AC-006']   # Fita e Parafusos
+    
+    # Mapeamento de códigos de tipo de componente para funções de cálculo
+    CALCULADORAS_ADICIONAIS = {
+        'AC-002': calcular_custo_fita,      # Fita de borda
+        'AC-006': calcular_custo_parafusos,  # Parafusos
+    }
     
     # Campos necessários para o cálculo
     CAMPOS_NECESSARIOS = [
@@ -66,30 +73,39 @@ class BaseSimplesRule:
         detalhes_adicionais = []
         if componentes_adicionais:
             for comp in componentes_adicionais:
-                if comp.nome.upper().startswith('FITA'):
-                    resultado_fita = calcular_custo_fita(dados, comp)
-                    custo_adicionais += resultado_fita['custo_total']
-                    detalhes_adicionais.append(resultado_fita)
+                # Buscar a função de cálculo apropriada para o tipo do componente
+                codigo_tipo = comp.tipo_componente.codigo if hasattr(comp, 'tipo_componente') else None
+                
+                if codigo_tipo and codigo_tipo in BaseSimplesRule.CALCULADORAS_ADICIONAIS:
+                    funcao_calculo = BaseSimplesRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
+                    resultado = funcao_calculo(dados, comp)
+                    
+                    if not resultado.get('erro'):
+                        custo_adicionais += parse_float(resultado['custo_total'])
+                        detalhes_adicionais.append(resultado)
+                    else:
+                        print(f"Erro ao calcular {comp.nome}: {resultado.get('erro')}")
+                else:
+                    print(f"Aviso: Componente adicional '{comp.nome}' (tipo: {codigo_tipo}) não tem calculadora definida")
 
-        custo_total = resultado_mdf['custo_total'] + custo_adicionais
-
+        custo_total = parse_float(resultado_mdf['custo_total']) + custo_adicionais
         return {
             'sucesso': True,
-            'area_por_peca': format_decimal(area_por_peca),
-            'area_total': format_decimal(area_total),
-            'quantidade_utilizada': format_decimal(area_total),
-            'unidade': 'm²',
-            'custo_total': format_decimal(custo_total),
+            'area_por_peca': resultado_mdf['area_por_peca'] if 'area_por_peca' in resultado_mdf else resultado_mdf['quantidade_utilizada'],
+            'area_total': resultado_mdf['quantidade_utilizada'],
+            'quantidade_utilizada': resultado_mdf['quantidade_utilizada'],
+            'unidade': resultado_mdf.get('unidade', 'm²'),
+            'custo_total': f"{custo_total:.2f}",
             'detalhes': [
                 {
                     'componente': componente.nome,
                     'tipo': 'principal',
-                    'quantidade': format_decimal(area_total),
-                    'unidade': 'm²',
-                    'custo': format_decimal(resultado_mdf['custo_total']),
+                    'quantidade': resultado_mdf['quantidade_utilizada'],
+                    'unidade': resultado_mdf.get('unidade', 'm²'),
+                    'custo': resultado_mdf['custo_total'],
                     'resumo': resultado_mdf['resumo']
                 },
                 *detalhes_adicionais
             ],
-            'resumo': f"{format_decimal(quantidade)}x peças de {format_decimal(altura)}cm x {format_decimal(largura)}cm = {format_decimal(area_total)} m²"
+            'resumo': f"{dados.get('quantidade')}x peças de {dados.get('altura')}cm x {dados.get('largura')}cm = {resultado_mdf['quantidade_utilizada']} m²"
         }
