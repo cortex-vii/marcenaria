@@ -530,10 +530,29 @@ def get_campos_calculo_peca(request, tipo_peca_codigo):
         # Obter campos através do RuleManager
         campos = RuleManager.get_campos_necessarios(tipo_peca_codigo)
         
-        return JsonResponse({
+        # Para gaveta (PC-005), incluir configuração dos MDFs (sem as funções)
+        componentes_mdf_config = None
+        if tipo_peca_codigo == 'PC-005':
+            from marcenaria.rules.rule_gaveta import GavetaRule
+            # Serializar apenas os dados necessários, excluindo as funções
+            componentes_mdf_config = [
+                {
+                    'label': config['label'],
+                    'codigo': config['codigo'],
+                    'campos': config['campos']
+                }
+                for config in GavetaRule.COMPONENTES_MDF_CONFIG
+            ]
+        
+        response_data = {
             'sucesso': True,
             'campos': campos
-        })
+        }
+        
+        if componentes_mdf_config:
+            response_data['componentes_mdf_config'] = componentes_mdf_config
+        
+        return JsonResponse(response_data)
         
     except Exception as e:
         return JsonResponse({

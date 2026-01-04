@@ -10,6 +10,11 @@ TIPOS_COMPONENTES = [
         'descricao': 'Medium Density Fiberboard - Placas de fibra de madeira'
     },
     {
+        'codigo': 'AC-001.1',
+        'nome': 'ENGROSSO EM MDF',
+        'descricao': 'Medium Density Fiberboard - Placas de fibra de madeira'
+    },
+    {
         'codigo': 'AC-002',
         'nome': 'FITA',
         'descricao': 'Fitas de borda para acabamento'
@@ -49,9 +54,9 @@ TIPOS_PECAS = [
         'descricao': 'Base simples para móveis'
     },
     {
-        'codigo': 'PC-003',
-        'nome': 'Base engrossada',
-        'descricao': 'Base engrossada para móveis'
+    'codigo': 'PC-003',
+    'nome': 'Engrosso',
+    'descricao': 'Engrosso para móveis'
     },
     {
         'codigo': 'PC-004',
@@ -67,16 +72,6 @@ TIPOS_PECAS = [
         'codigo': 'PC-006',
         'nome': 'Lateral dupla',
         'descricao': 'Lateral dupla para móveis'
-    },
-    {
-        'codigo': 'PC-007',
-        'nome': 'Lateral engrossada',
-        'descricao': 'Lateral engrossada para móveis'
-    },
-    {
-        'codigo': 'PC-008',
-        'nome': 'Lateral externa',
-        'descricao': 'Lateral externa para móveis'
     },
     {
         'codigo': 'PC-009',

@@ -48,10 +48,6 @@ class BaseSimplesRule:
     
     @staticmethod
     def calcular(dados, componente, componentes_adicionais=None):
-        print("\n========== CALCULANDO BASE SIMPLES ==========")
-        print("ID do componente principal:", componente.id)
-        print("IDs dos componentes adicionais:", componentes_adicionais)
-        print("===========================================\n")
 
         # Cálculo MDF (principal)
         resultado_mdf = calcular_custo_mdf(dados, componente)

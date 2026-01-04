@@ -1,30 +1,28 @@
 from .calc_tipos_componentes.calc_fita import calcular_custo_fita
 from .calc_tipos_componentes.calc_mdf import calcular_custo_mdf
-from .calc_tipos_componentes.calc_parafusos import calcular_custo_parafusos
 from ..utils.data_format import format_decimal
 
-class BaseDuplaRule:
-    """Classe com as regras para calcular Base Dupla"""
+class PortaCorrerRule:
+    """Classe com as regras para calcular Porta de Correr"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
-    COMPONENTES_ADICIONAIS = ["AC-002", 'AC-006']   # Fita e Parafusos
+    COMPONENTES_ADICIONAIS = ["AC-002"]   # Fita
     
     # Mapeamento de códigos de tipo de componente para funções de cálculo
     CALCULADORAS_ADICIONAIS = {
         'AC-002': calcular_custo_fita,      # Fita de borda
-        'AC-006': calcular_custo_parafusos,  # Parafusos
     }
     
     # Campos necessários para o cálculo
     CAMPOS_NECESSARIOS = [
         {
             'name': 'quantidade',
-            'label': 'Quantidade de peças',
+            'label': 'Quantidade de portas',
             'type': 'number',
             'required': True,
             'min': 1,
-            'help': 'Quantas peças de base dupla você precisa'
+            'help': 'Quantas portas de correr você precisa'
         },
         {
             'name': 'altura',
@@ -33,7 +31,7 @@ class BaseDuplaRule:
             'required': True,
             'min': 0.1,
             'step': 0.1,
-            'help': 'Altura da peça em centímetros'
+            'help': 'Altura da porta em centímetros'
         },
         {
             'name': 'largura',
@@ -42,14 +40,14 @@ class BaseDuplaRule:
             'required': True,
             'min': 0.1,
             'step': 0.1,
-            'help': 'Largura da peça em centímetros'
-        },
+            'help': 'Largura da porta em centímetros'
+        }
     ]
     
     @staticmethod
     def calcular(dados, componente, componentes_adicionais=None):
         """
-        Calcula a quantidade de material necessária para base dupla
+        Calcula a quantidade de material necessária para portas de correr
         
         Args:
             dados (dict): Dicionário com quantidade, altura, largura
@@ -59,13 +57,8 @@ class BaseDuplaRule:
         Returns:
             dict: Resultado do cálculo
         """
-        # Criar dados modificados para o cálculo do MDF (multiplicar quantidade por 2)
-        dados_mdf = dados.copy()
-        quantidade_original = float(dados.get('quantidade', 0))
-        dados_mdf['quantidade'] = quantidade_original * 2
-        
-        # Cálculo MDF (principal) - usando quantidade * 2
-        resultado_mdf = calcular_custo_mdf(dados_mdf, componente)
+        # Cálculo MDF (principal)
+        resultado_mdf = calcular_custo_mdf(dados, componente)
         if resultado_mdf.get('erro'):
             return {'erro': resultado_mdf['erro']}
 
@@ -86,8 +79,8 @@ class BaseDuplaRule:
                 # Buscar a função de cálculo apropriada para o tipo do componente
                 codigo_tipo = comp.tipo_componente.codigo if hasattr(comp, 'tipo_componente') else None
                 
-                if codigo_tipo and codigo_tipo in BaseDuplaRule.CALCULADORAS_ADICIONAIS:
-                    funcao_calculo = BaseDuplaRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
+                if codigo_tipo and codigo_tipo in PortaCorrerRule.CALCULADORAS_ADICIONAIS:
+                    funcao_calculo = PortaCorrerRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
                     resultado = funcao_calculo(dados, comp)
                     
                     if not resultado.get('erro'):
@@ -101,7 +94,7 @@ class BaseDuplaRule:
         custo_total = parse_float(resultado_mdf['custo_total']) + custo_adicionais
         return {
             'sucesso': True,
-            'area_por_peca': parse_float(resultado_mdf['quantidade_utilizada']) / quantidade,
+            'area_por_peca': parse_float(resultado_mdf['quantidade_utilizada']) / quantidade if quantidade > 0 else 0,
             'area_total': area_total,
             'quantidade_utilizada': resultado_mdf['quantidade_utilizada'],
             'unidade': resultado_mdf.get('unidade', 'm²'),
@@ -117,5 +110,5 @@ class BaseDuplaRule:
                 },
                 *detalhes_adicionais
             ],
-            'resumo': f"{quantidade}x peças duplas de {altura}cm x {largura}cm = {resultado_mdf['quantidade_utilizada']} m²"
+            'resumo': f"{quantidade}x portas de correr de {altura}cm x {largura}cm = {resultado_mdf['quantidade_utilizada']} m²"
         }

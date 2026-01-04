@@ -1,19 +1,17 @@
 from .calc_tipos_componentes.calc_fita import calcular_custo_fita
 from .calc_tipos_componentes.calc_mdf import calcular_custo_mdf
-from .calc_tipos_componentes.calc_parafusos import calcular_custo_parafusos
 from ..utils.data_format import format_decimal
 
-class BaseDuplaRule:
-    """Classe com as regras para calcular Base Dupla"""
+class EngrossaRule:
+    """Classe com as regras para calcular Base Engrossada (Engrosso)"""
     
     # Componentes que esta peça pode usar
-    COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
-    COMPONENTES_ADICIONAIS = ["AC-002", 'AC-006']   # Fita e Parafusos
+    COMPONENTES_DISPONIVEIS = ['AC-001.1']  # ENGROSSO EM MDF
+    COMPONENTES_ADICIONAIS = ["AC-002"]   # Fita
     
     # Mapeamento de códigos de tipo de componente para funções de cálculo
     CALCULADORAS_ADICIONAIS = {
         'AC-002': calcular_custo_fita,      # Fita de borda
-        'AC-006': calcular_custo_parafusos,  # Parafusos
     }
     
     # Campos necessários para o cálculo
@@ -24,7 +22,7 @@ class BaseDuplaRule:
             'type': 'number',
             'required': True,
             'min': 1,
-            'help': 'Quantas peças de base dupla você precisa'
+            'help': 'Quantas peças de engrosso você precisa'
         },
         {
             'name': 'altura',
@@ -43,29 +41,25 @@ class BaseDuplaRule:
             'min': 0.1,
             'step': 0.1,
             'help': 'Largura da peça em centímetros'
-        },
+        }
     ]
     
     @staticmethod
     def calcular(dados, componente, componentes_adicionais=None):
         """
-        Calcula a quantidade de material necessária para base dupla
+        Calcula a quantidade de material necessária para engrosso
+        Funciona exatamente como o MDF - cálculo de área
         
         Args:
             dados (dict): Dicionário com quantidade, altura, largura
-            componente (Componente): Componente principal (MDF)
-            componentes_adicionais (list): Lista de componentes adicionais (fita, parafusos)
+            componente (Componente): Componente de engrosso (AC-001.1)
+            componentes_adicionais (list): Não usado para engrosso
             
         Returns:
             dict: Resultado do cálculo
         """
-        # Criar dados modificados para o cálculo do MDF (multiplicar quantidade por 2)
-        dados_mdf = dados.copy()
-        quantidade_original = float(dados.get('quantidade', 0))
-        dados_mdf['quantidade'] = quantidade_original * 2
-        
-        # Cálculo MDF (principal) - usando quantidade * 2
-        resultado_mdf = calcular_custo_mdf(dados_mdf, componente)
+        # Cálculo usando a mesma função do MDF
+        resultado_mdf = calcular_custo_mdf(dados, componente)
         if resultado_mdf.get('erro'):
             return {'erro': resultado_mdf['erro']}
 
@@ -86,8 +80,8 @@ class BaseDuplaRule:
                 # Buscar a função de cálculo apropriada para o tipo do componente
                 codigo_tipo = comp.tipo_componente.codigo if hasattr(comp, 'tipo_componente') else None
                 
-                if codigo_tipo and codigo_tipo in BaseDuplaRule.CALCULADORAS_ADICIONAIS:
-                    funcao_calculo = BaseDuplaRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
+                if codigo_tipo and codigo_tipo in EngrossaRule.CALCULADORAS_ADICIONAIS:
+                    funcao_calculo = EngrossaRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
                     resultado = funcao_calculo(dados, comp)
                     
                     if not resultado.get('erro'):
@@ -99,9 +93,10 @@ class BaseDuplaRule:
                     print(f"Aviso: Componente adicional '{comp.nome}' (tipo: {codigo_tipo}) não tem calculadora definida")
 
         custo_total = parse_float(resultado_mdf['custo_total']) + custo_adicionais
+        
         return {
             'sucesso': True,
-            'area_por_peca': parse_float(resultado_mdf['quantidade_utilizada']) / quantidade,
+            'area_por_peca': parse_float(resultado_mdf['quantidade_utilizada']) / quantidade if quantidade > 0 else 0,
             'area_total': area_total,
             'quantidade_utilizada': resultado_mdf['quantidade_utilizada'],
             'unidade': resultado_mdf.get('unidade', 'm²'),
@@ -117,5 +112,5 @@ class BaseDuplaRule:
                 },
                 *detalhes_adicionais
             ],
-            'resumo': f"{quantidade}x peças duplas de {altura}cm x {largura}cm = {resultado_mdf['quantidade_utilizada']} m²"
+            'resumo': f"{quantidade}x peças de engrosso de {altura}cm x {largura}cm = {resultado_mdf['quantidade_utilizada']} m²"
         }

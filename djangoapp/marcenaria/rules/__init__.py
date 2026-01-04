@@ -7,7 +7,17 @@ def get_rule_class(codigo_tipo_peca):
     
     # Mapeamento de códigos para classes
     RULES_MAP = {
+        'PC-001': 'rule_base_dupla.BaseDuplaRule',  # Base dupla
+        'PC-002': 'rule_base_simples.BaseSimplesRule',  # Base simples
+        'PC-003': 'rule_engrossa.EngrossaRule',  # Engrosso
         'PC-004': 'rule_fundo_simples.FundoSimplesRule',  # Fundo simples
+        'PC-005': 'rule_gaveta.GavetaRule',  # Gaveta
+        'PC-006': 'rule_lateral_dupla.LateralDuplaRule',  # Lateral dupla
+        'PC-009': 'rule_lateral_simples.LateralSimplesRule',  # Lateral simples
+        'PC-010': 'rule_porta_abrir.PortaAbrirRule',  # Porta de abrir
+        'PC-011': 'rule_porta_correr.PortaCorrerRule',  # Porta de correr
+        'PC-012': 'rule_roda_forro.RodaForroRule',  # Roda forro
+        'PC-013': 'rule_roda_pe.RodaPeRule',  # Roda pé
     }
     
     if codigo_tipo_peca not in RULES_MAP:

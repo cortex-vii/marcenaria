@@ -527,11 +527,67 @@ document.addEventListener('DOMContentLoaded', function () {
 
   async function calcularEmTempoReal() {
     const tipoPeca = document.getElementById('tipoPeca').value;
-    const componentePeca = document.getElementById('componentePeca').value;
 
-    if (!tipoPeca || !componentePeca) {
+    if (!tipoPeca) {
       document.getElementById('calculoResultado').style.display = 'none';
       return;
+    }
+
+    // Determinar componente principal e adicionais conforme o tipo
+    let componenteData = null;
+    let adicionaisSelecionados = [];
+
+    if (tipoPeca === 'PC-005') {
+      // Gaveta: usar MDF das laterais como componente principal
+      const select0 = document.getElementById('mdf_componente_0');
+      if (!select0 || !select0.value) {
+        document.getElementById('calculoResultado').style.display = 'none';
+        return;
+      }
+      const option0 = select0.options[select0.selectedIndex];
+      componenteData = JSON.parse(option0.dataset.componente);
+
+      // Adicionais: outros MDFs (1, 2, 3) + não-MDF do container adicionais
+      for (let i = 1; i <= 3; i++) {
+        const sel = document.getElementById(`mdf_componente_${i}`);
+        if (!sel || !sel.value) {
+          document.getElementById('calculoResultado').style.display = 'none';
+          return;
+        }
+        adicionaisSelecionados.push(sel.value);
+      }
+
+      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+      const selectsAdicionais = adicionaisContainer ? adicionaisContainer.querySelectorAll('select') : [];
+      for (let select of selectsAdicionais) {
+        if (select.required && !select.value) {
+          document.getElementById('calculoResultado').style.display = 'none';
+          return;
+        }
+        if (select.value) {
+          adicionaisSelecionados.push(select.value);
+        }
+      }
+    } else {
+      // Demais peças: usar componente padrão selecionado
+      const componentePecaEl = document.getElementById('componentePeca');
+      if (!componentePecaEl || !componentePecaEl.value) {
+        document.getElementById('calculoResultado').style.display = 'none';
+        return;
+      }
+      const compOption = componentePecaEl.options[componentePecaEl.selectedIndex];
+      componenteData = JSON.parse(compOption.dataset.componente);
+
+      // Coletar adicionais padrão
+      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+      const selectsAdicionais = adicionaisContainer ? adicionaisContainer.querySelectorAll('select') : [];
+      for (let select of selectsAdicionais) {
+        if (select.required && !select.value) {
+          document.getElementById('calculoResultado').style.display = 'none';
+          return;
+        }
+        adicionaisSelecionados.push(select.value);
+      }
     }
 
     // Coletar dados dos campos
@@ -551,22 +607,6 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!camposValidos) {
       document.getElementById('calculoResultado').style.display = 'none';
       return;
-    }
-
-    // Obter dados do componente
-    const compOption = document.getElementById('componentePeca').options[document.getElementById('componentePeca').selectedIndex];
-    const componenteData = JSON.parse(compOption.dataset.componente);
-
-    // Coletar componentes adicionais selecionados (enviar apenas o id)
-    const adicionaisSelecionados = [];
-    const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
-    const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
-    for (let select of selectsAdicionais) {
-      if (select.required && !select.value) {
-        alert('Selecione todos os componentes adicionais obrigatórios');
-        return;
-      }
-      adicionaisSelecionados.push(select.value);
     }
 
     // Fazer cálculo
@@ -729,6 +769,297 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ========== FUNÇÕES DE IMPRESSÃO ==========
+
+  function imprimirProducao() {
+    const cliente = document.getElementById('cliente').value || 'Cliente não informado';
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+
+    if (ambientes.length === 0) {
+      alert('Adicione pelo menos um ambiente antes de imprimir');
+      return;
+    }
+
+    let htmlImpressao = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Ordem de Produção - ${cliente}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Courier New', monospace; 
+            padding: 20px; 
+            color: #000; 
+            line-height: 1.4;
+            font-size: 11pt;
+          }
+          .cabecalho { 
+            text-align: center; 
+            border-bottom: 3px solid #000; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+          }
+          .titulo { 
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 2px;
+          }
+          .info-basica { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #000;
+          }
+          .ambiente { 
+            margin-bottom: 25px; 
+            border: 2px solid #000;
+            page-break-inside: avoid;
+          }
+          .ambiente-header { 
+            background: #e0e0e0; 
+            padding: 8px 12px;
+            border-bottom: 2px solid #000;
+            font-weight: bold;
+            font-size: 14px;
+          }
+          .movel { 
+            border-bottom: 1px solid #666;
+            padding: 15px;
+          }
+          .movel:last-child {
+            border-bottom: none;
+          }
+          .movel-nome { 
+            font-size: 13px;
+            font-weight: bold; 
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px dashed #666;
+            padding-bottom: 5px;
+          }
+          .peca { 
+            margin: 10px 0 10px 20px;
+            padding: 8px;
+            border-left: 3px solid #666;
+            background: #f9f9f9;
+            page-break-after: always;
+            page-break-inside: avoid;
+          }
+          .peca-titulo {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 12px;
+          }
+          .peca-componente {
+            font-style: italic;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 11px;
+          }
+          .medidas {
+            margin-left: 15px;
+          }
+          .medida-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dotted #ccc;
+          }
+          .medida-label {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 10px;
+          }
+          .medida-valor {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+          }
+          .detalhes-adicionais {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #999;
+          }
+          .adicional-item {
+            padding: 3px 0;
+            font-size: 10px;
+          }
+          .checkbox {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            border: 2px solid #000;
+            margin-right: 8px;
+            vertical-align: middle;
+          }
+          .assinatura {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #000;
+          }
+          .assinatura-linha {
+            margin-top: 30px;
+            text-align: center;
+          }
+          .assinatura-linha::before {
+            content: '';
+            display: block;
+            width: 300px;
+            margin: 0 auto 5px;
+            border-top: 1px solid #000;
+          }
+          @media print {
+            body { padding: 15px; }
+            .ambiente { page-break-inside: avoid; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="cabecalho">
+          <h1 class="titulo">ORDEM DE PRODUÇÃO - MARCENARIA</h1>
+        </div>
+        
+        <div class="info-basica">
+          <div><strong>CLIENTE:</strong> ${cliente}</div>
+          <div><strong>DATA:</strong> ${dataAtual}</div>
+        </div>
+    `;
+
+    // Adicionar ambientes e móveis com detalhes técnicos
+    ambientes.forEach((ambiente, ambIdx) => {
+      const moveis = ambiente.moveis || [];
+      
+      htmlImpressao += `
+        <div class="ambiente">
+          <div class="ambiente-header">🏠 AMBIENTE ${ambIdx + 1}: ${ambiente.nome.toUpperCase()}</div>
+      `;
+
+      moveis.forEach((movel, movelIdx) => {
+        const pecas = movel.pecas || [];
+        
+        htmlImpressao += `
+          <div class="movel">
+            <div class="movel-nome">📦 ${movel.nome}</div>
+        `;
+
+        pecas.forEach((peca, pecaIdx) => {
+          const quantidade = parseInt(peca.dados_calculo?.quantidade || 1);
+          const dadosCalculo = peca.dados_calculo || {};
+          
+          htmlImpressao += `
+            <div class="peca">
+              <div class="peca-titulo">${pecaIdx + 1}. ${peca.tipo_nome} (${quantidade}x)</div>
+              <div class="peca-componente">Componente: ${peca.componente_nome}</div>
+              
+              <div class="medidas">
+          `;
+
+          // Renderizar medidas específicas
+          Object.entries(dadosCalculo).forEach(([key, value]) => {
+            // Formatar o label removendo underscores e capitalizando
+            let label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            
+            // Detectar unidade baseada no nome do campo
+            let unidade = '';
+            if (key.includes('altura') || key.includes('largura') || key.includes('profundidade') || key.includes('espessura')) {
+              unidade = ' cm';
+            } else if (key === 'quantidade') {
+              unidade = ' un';
+            }
+            
+            htmlImpressao += `
+                <div class="medida-item">
+                  <span class="medida-label">${label}:</span>
+                  <span class="medida-valor">${value}${unidade}</span>
+                </div>
+            `;
+          });
+
+          htmlImpressao += `
+              </div>
+          `;
+
+          // Adicionar detalhes dos componentes (TODOS, incluindo o principal)
+          if (peca.resultado_calculo?.detalhes && Array.isArray(peca.resultado_calculo.detalhes)) {
+            const todosDetalhes = peca.resultado_calculo.detalhes;
+            
+            if (todosDetalhes.length > 0) {
+              htmlImpressao += `
+                <div class="detalhes-adicionais">
+                  <strong>Componentes Necessários:</strong>
+              `;
+              
+              todosDetalhes.forEach(adicional => {
+                const qtd = adicional.quantidade_utilizada || adicional.quantidade || '';
+                const un = adicional.unidade || '';
+                const resumo = adicional.resumo || '';
+                
+                htmlImpressao += `
+                  <div class="adicional-item">
+                    <span class="checkbox"></span>
+                    <strong>${adicional.componente}:</strong> ${qtd} ${un}
+                `;
+                
+                // Se há resumo com informações detalhadas, mostrar
+                if (resumo) {
+                  htmlImpressao += `<br><span style="margin-left: 30px; font-size: 9px; color: #555;">↳ ${resumo}</span>`;
+                }
+                
+                htmlImpressao += `
+                  </div>
+                `;
+              });
+              
+              htmlImpressao += `
+                </div>
+              `;
+            }
+          }
+
+          htmlImpressao += `
+            </div>
+          `;
+        });
+
+        htmlImpressao += `
+          </div>
+        `;
+      });
+
+      htmlImpressao += `
+        </div>
+      `;
+    });
+
+    // Adicionar seção de assinatura
+    htmlImpressao += `
+        <div class="assinatura">
+          <div style="margin-bottom: 20px;">
+            <strong>OBSERVAÇÕES:</strong>
+            <div style="border: 1px solid #000; min-height: 60px; margin-top: 5px; padding: 5px;"></div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-around; margin-top: 30px;">
+            <div class="assinatura-linha" style="width: 40%;">
+              <div>Responsável pela Produção</div>
+            </div>
+            <div class="assinatura-linha" style="width: 40%;">
+              <div>Data de Conclusão</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Abrir nova janela para impressão
+    const janelaImpressao = window.open('', '_blank');
+    janelaImpressao.document.write(htmlImpressao);
+    janelaImpressao.document.close();
+    janelaImpressao.focus();
+    janelaImpressao.print();
+  }
 
   function imprimirOrcamento() {
     const cliente = document.getElementById('cliente').value || 'Cliente não informado';
@@ -1016,7 +1347,12 @@ document.addEventListener('DOMContentLoaded', function () {
           select.appendChild(option);
         });
 
-        document.getElementById('componentesContainer').style.display = 'block';
+        // Para gaveta, não mostrar o componentesContainer padrão
+        if (tipoPecaCodigo !== 'PC-005') {
+          document.getElementById('componentesContainer').style.display = 'block';
+        } else {
+          document.getElementById('componentesContainer').style.display = 'none';
+        }
       } else {
         alert('Erro ao carregar componentes: ' + data.erro);
       }
@@ -1034,12 +1370,20 @@ document.addEventListener('DOMContentLoaded', function () {
       if (data.sucesso && data.componentes_adicionais) {
         const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
         adicionaisContainer.innerHTML = '';
+        
+        // Renderizar apenas adicionais relevantes
+        Object.values(data.componentes_adicionais).forEach((grupo) => {
+          // Para gaveta (PC-005), não renderizar MDF (AC-001) aqui para evitar duplicação
+          if (tipoPecaCodigo === 'PC-005' && grupo.codigo === 'AC-001') {
+            return; // pular MDF; será tratado nas seções personalizadas
+          }
 
-        Object.values(data.componentes_adicionais).forEach(grupo => {
+          const labelText = grupo.nome + ' *';
+
           // Título do grupo (nome do componente)
           const label = document.createElement('label');
           label.className = 'label';
-          label.textContent = grupo.nome + ' *';
+          label.textContent = labelText;
 
           // Select dos componentes adicionais
           const select = document.createElement('select');
@@ -1049,7 +1393,7 @@ document.addEventListener('DOMContentLoaded', function () {
           select.required = true;
 
           select.innerHTML = '<option value="">Selecione...</option>';
-          grupo.componentes.forEach(comp => {
+          grupo.componentes.forEach((comp) => {
             const option = document.createElement('option');
             option.value = comp.id;
             option.textContent = `${comp.nome} (R$ ${comp.custo_unitario})`;
@@ -1088,6 +1432,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const container = document.getElementById('camposCalculoContainer');
         container.innerHTML = '';
 
+        // Renderizar campos comuns
         data.campos.forEach(campo => {
           const fieldDiv = document.createElement('div');
           fieldDiv.className = 'campo-calculo';
@@ -1129,6 +1474,107 @@ document.addEventListener('DOMContentLoaded', function () {
 
           container.appendChild(fieldDiv);
         });
+
+        // Para gaveta (PC-005), renderizar seções MDF separadas
+        if (tipoPecaCodigo === 'PC-005' && data.componentes_mdf_config) {
+          // Ocultar o container de componentes adicionais para gaveta
+          document.getElementById('componentesAdicionaisContainer').style.display = 'none';
+          // Ocultar também o container de componentes padrão
+          document.getElementById('componentesContainer').style.display = 'none';
+          
+          data.componentes_mdf_config.forEach((config, index) => {
+            // Criar seção para este MDF
+            const secao = document.createElement('div');
+            secao.className = 'componente-mdf-secao';
+            secao.style.marginTop = '20px';
+            secao.style.padding = '15px';
+            secao.style.border = '1px solid #ddd';
+            secao.style.borderRadius = '5px';
+            secao.style.backgroundColor = '#f9f9f9';
+            
+            // Título da seção
+            const titulo = document.createElement('h4');
+            titulo.textContent = config.label;
+            titulo.style.marginTop = '0';
+            titulo.style.marginBottom = '15px';
+            titulo.style.color = '#333';
+            secao.appendChild(titulo);
+            
+            // Select do componente MDF
+            const selectDiv = document.createElement('div');
+            selectDiv.className = 'campo-calculo';
+            
+            const selectLabel = document.createElement('label');
+            selectLabel.className = 'label';
+            selectLabel.textContent = `Selecione o MDF *`;
+            
+            const select = document.createElement('select');
+            select.className = 'input-field';
+            select.id = `mdf_componente_${index}`;
+            select.name = `mdf_componente_${index}`;
+            select.required = true;
+            select.innerHTML = '<option value="">Selecione...</option>';
+            
+            // Carregar componentes MDF via fetch
+            fetch(`/marcenaria/api/componentes/${tipoPecaCodigo}/`)
+              .then(res => res.json())
+              .then(dataComp => {
+                if (dataComp.sucesso && dataComp.componentes) {
+                  // Buscar componentes AC-001 (usar campo 'tipo_codigo' do JSON)
+                  const componentesAC001 = dataComp.componentes.filter(c => c.tipo_codigo === 'AC-001');
+                  componentesAC001.forEach(comp => {
+                    const option = document.createElement('option');
+                    option.value = comp.id;
+                    option.textContent = `${comp.nome} (R$ ${comp.custo_unitario})`;
+                    option.dataset.componente = JSON.stringify(comp);
+                    select.appendChild(option);
+                  });
+                }
+              });
+            
+            selectDiv.appendChild(selectLabel);
+            selectDiv.appendChild(select);
+            secao.appendChild(selectDiv);
+
+            // Disparar cálculo ao mudar MDF selecionado
+            select.addEventListener('change', () => {
+              if (currentCalculoTimeout) clearTimeout(currentCalculoTimeout);
+              currentCalculoTimeout = setTimeout(calcularEmTempoReal, 300);
+            });
+            
+            // Campos específicos deste MDF
+            config.campos.forEach(campo => {
+              const fieldDiv = document.createElement('div');
+              fieldDiv.className = 'campo-calculo';
+              
+              const label = document.createElement('label');
+              label.className = 'label';
+              label.textContent = campo.label + (campo.required ? ' *' : '');
+              
+              const input = document.createElement('input');
+              input.type = campo.type;
+              input.id = `campo_${campo.name}`;
+              input.name = campo.name;
+              input.className = 'input-field';
+              input.required = campo.required || false;
+              
+              if (campo.min !== undefined) input.min = campo.min;
+              if (campo.max !== undefined) input.max = campo.max;
+              if (campo.step !== undefined) input.step = campo.step;
+              
+              input.addEventListener('input', () => {
+                if (currentCalculoTimeout) clearTimeout(currentCalculoTimeout);
+                currentCalculoTimeout = setTimeout(calcularEmTempoReal, 500);
+              });
+              
+              fieldDiv.appendChild(label);
+              fieldDiv.appendChild(input);
+              secao.appendChild(fieldDiv);
+            });
+            
+            container.appendChild(secao);
+          });
+        }
       } else {
         alert('Erro ao carregar campos: ' + data.erro);
       }
@@ -1228,15 +1674,61 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('btnSalvarPeca').addEventListener('click', async () => {
     const tipoPeca = document.getElementById('tipoPeca');
     const componentePeca = document.getElementById('componentePeca');
+    const tipoPecaValue = tipoPeca.value;
 
-    if (!tipoPeca.value) {
+    if (!tipoPecaValue) {
       alert('Selecione o tipo de peça');
       return;
     }
 
-    if (!componentePeca.value) {
-      alert('Selecione o componente');
-      return;
+    // Para gaveta (PC-005), coletar componentes MDF separados
+    let componentePrincipal = null;
+    let componentesAdicionais = [];
+    
+    if (tipoPecaValue === 'PC-005') {
+      // Coletar os 4 selects de MDF
+      const selects = [];
+      for (let i = 0; i < 4; i++) {
+        const select = document.getElementById(`mdf_componente_${i}`);
+        if (!select || !select.value) {
+          alert(`Selecione todos os componentes MDF`);
+          return;
+        }
+        selects.push(select.value);
+      }
+      
+      // Primeiro é principal, demais são adicionais
+      componentePrincipal = selects[0];
+      componentesAdicionais = selects.slice(1);
+      
+      // Adicionar componentes não-MDF (fita, corrediças, parafusos)
+      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+      const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
+      for (let select of selectsAdicionais) {
+        if (select.value) {
+          componentesAdicionais.push(select.value);
+        }
+      }
+    } else {
+      // Para outras peças, usar o componente principal normal
+      if (!componentePeca.value) {
+        alert('Selecione o componente');
+        return;
+      }
+      componentePrincipal = componentePeca.value;
+      
+      // Coletar componentes adicionais
+      const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
+      const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
+      for (let select of selectsAdicionais) {
+        if (select.required && !select.value) {
+          alert('Selecione todos os componentes adicionais obrigatórios');
+          return;
+        }
+        if (select.value) {
+          componentesAdicionais.push(select.value);
+        }
+      }
     }
 
     // Coletar dados dos campos de cálculo
@@ -1252,31 +1744,28 @@ document.addEventListener('DOMContentLoaded', function () {
       dadosCalculo[campo.name] = campo.value;
     }
 
-    // Coletar componentes adicionais selecionados
-    const adicionaisSelecionados = [];
-    const adicionaisContainer = document.getElementById('componentesAdicionaisContainer');
-    const selectsAdicionais = adicionaisContainer.querySelectorAll('select');
-    for (let select of selectsAdicionais) {
-      if (select.required && !select.value) {
-        alert('Selecione todos os componentes adicionais obrigatórios');
-        return;
-      }
-      adicionaisSelecionados.push(select.value);
-    }
-
     // Preparar dados da peça
     const tipoOption = tipoPeca.options[tipoPeca.selectedIndex];
-    const compOption = componentePeca.options[componentePeca.selectedIndex];
-    const componenteData = JSON.parse(compOption.dataset.componente);
+    
+    // Obter dados do componente principal
+    let componenteData;
+    if (tipoPecaValue === 'PC-005') {
+      const select0 = document.getElementById('mdf_componente_0');
+      const option0 = select0.options[select0.selectedIndex];
+      componenteData = JSON.parse(option0.dataset.componente);
+    } else {
+      const compOption = componentePeca.options[componentePeca.selectedIndex];
+      componenteData = JSON.parse(compOption.dataset.componente);
+    }
 
     const dadosPeca = {
-      tipo_codigo: tipoPeca.value,
+      tipo_codigo: tipoPecaValue,
       tipo_nome: tipoOption.textContent,
-      componente_id: componentePeca.value,
+      componente_id: componentePrincipal,
       componente_nome: componenteData.nome,
       componente_preco_unitario: componenteData.custo_unitario,
       dados_calculo: dadosCalculo,
-      componentes_adicionais: adicionaisSelecionados, // Agora é um array de objetos
+      componentes_adicionais: componentesAdicionais,
       resumo: `${tipoOption.textContent} - ${Object.values(dadosCalculo).join(' x ')}`
     };
 
@@ -1299,6 +1788,21 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       imprimirOrcamento();
+    });
+  }
+
+  // Botão de impressão para produção
+  const btnImprimirProducao = document.getElementById('btnImprimirProducao');
+  if (btnImprimirProducao) {
+    btnImprimirProducao.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      if (ambientes.length === 0) {
+        alert('Adicione pelo menos um ambiente antes de imprimir');
+        return;
+      }
+
+      imprimirProducao();
     });
   }
 

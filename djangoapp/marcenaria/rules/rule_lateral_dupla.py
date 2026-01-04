@@ -1,8 +1,17 @@
+from .calc_tipos_componentes.calc_fita import calcular_custo_fita
+from .calc_tipos_componentes.calc_mdf import calcular_custo_mdf
+
 class LateralDuplaRule:
     """Classe com as regras para calcular Lateral Dupla"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
+    COMPONENTES_ADICIONAIS = ["AC-002"]   # Fita
+    
+    # Mapeamento de códigos de tipo de componente para funções de cálculo
+    CALCULADORAS_ADICIONAIS = {
+        'AC-002': calcular_custo_fita,      # Fita de borda
+    }
     
     # Campos necessários para o cálculo
     CAMPOS_NECESSARIOS = [
@@ -35,42 +44,75 @@ class LateralDuplaRule:
     ]
     
     @staticmethod
-    def calcular(dados, componente):
+    def calcular(dados, componente, componentes_adicionais=None):
         """
         Calcula a quantidade de material necessária para laterais duplas
         
         Args:
             dados (dict): Dicionário com quantidade, altura, largura
-            componente (Componente): Componente selecionado
+            componente (Componente): Componente principal (MDF)
+            componentes_adicionais (list): Lista de componentes adicionais (fita)
             
         Returns:
             dict: Resultado do cálculo
         """
+        # Criar dados modificados para o cálculo do MDF (multiplicar quantidade por 2)
+        dados_mdf = dados.copy()
+        quantidade_original = float(dados.get('quantidade', 0))
+        dados_mdf['quantidade'] = quantidade_original * 2
+        
+        # Cálculo MDF (principal) - usando quantidade * 2
+        resultado_mdf = calcular_custo_mdf(dados_mdf, componente)
+        if resultado_mdf.get('erro'):
+            return {'erro': resultado_mdf['erro']}
+
+        def parse_float(val):
+            if isinstance(val, str):
+                return float(val.replace(',', '.'))
+            return float(val)
+
+        area_total = parse_float(resultado_mdf['quantidade_utilizada'])
         quantidade = float(dados.get('quantidade', 0))
         altura = float(dados.get('altura', 0))
         largura = float(dados.get('largura', 0))
-        
-        # Validações
-        if quantidade <= 0:
-            return {'erro': 'Quantidade deve ser maior que zero'}
-        if altura <= 0:
-            return {'erro': 'Altura deve ser maior que zero'}
-        if largura <= 0:
-            return {'erro': 'Largura deve ser maior que zero'}
-        
-        # Converter cm para metros
-        altura_m = altura / 100
-        largura_m = largura / 100
-        
-        # Lateral dupla = 2x a área de uma lateral simples
-        area_por_lateral = altura_m * largura_m * 2
-        area_total = area_por_lateral * quantidade
-        
+
+        custo_adicionais = 0
+        detalhes_adicionais = []
+        if componentes_adicionais:
+            for comp in componentes_adicionais:
+                # Buscar a função de cálculo apropriada para o tipo do componente
+                codigo_tipo = comp.tipo_componente.codigo if hasattr(comp, 'tipo_componente') else None
+                
+                if codigo_tipo and codigo_tipo in LateralDuplaRule.CALCULADORAS_ADICIONAIS:
+                    funcao_calculo = LateralDuplaRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
+                    resultado = funcao_calculo(dados, comp)
+                    
+                    if not resultado.get('erro'):
+                        custo_adicionais += parse_float(resultado['custo_total'])
+                        detalhes_adicionais.append(resultado)
+                    else:
+                        print(f"Erro ao calcular {comp.nome}: {resultado.get('erro')}")
+                else:
+                    print(f"Aviso: Componente adicional '{comp.nome}' (tipo: {codigo_tipo}) não tem calculadora definida")
+
+        custo_total = parse_float(resultado_mdf['custo_total']) + custo_adicionais
         return {
             'sucesso': True,
-            'area_por_lateral': area_por_lateral,
+            'area_por_peca': parse_float(resultado_mdf['quantidade_utilizada']) / quantidade,
             'area_total': area_total,
-            'quantidade_utilizada': area_total,
-            'unidade': 'm²',
-            'resumo': f'{quantidade}x laterais duplas de {altura}cm x {largura}cm = {area_total:.4f} m²'
+            'quantidade_utilizada': resultado_mdf['quantidade_utilizada'],
+            'unidade': resultado_mdf.get('unidade', 'm²'),
+            'custo_total': f"{custo_total:.2f}",
+            'detalhes': [
+                {
+                    'componente': componente.nome,
+                    'tipo': 'principal',
+                    'quantidade': resultado_mdf['quantidade_utilizada'],
+                    'unidade': resultado_mdf.get('unidade', 'm²'),
+                    'custo': resultado_mdf['custo_total'],
+                    'resumo': resultado_mdf['resumo']
+                },
+                *detalhes_adicionais
+            ],
+            'resumo': f"{quantidade}x laterais duplas de {altura}cm x {largura}cm = {resultado_mdf['quantidade_utilizada']} m²"
         }

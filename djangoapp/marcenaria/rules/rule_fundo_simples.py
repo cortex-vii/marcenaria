@@ -1,8 +1,19 @@
+from .calc_tipos_componentes.calc_mdf import calcular_custo_mdf
+from marcenaria.utils.data_format import format_decimal
+from .calc_tipos_componentes.calc_parafusos import calcular_parafusos_fundo_simples
+
+
 class FundoSimplesRule:
     """Classe com as regras para calcular Fundo Simples"""
     
     # Componentes que esta peça pode usar
     COMPONENTES_DISPONIVEIS = ['AC-001']  # MDF
+    COMPONENTES_ADICIONAIS = ['AC-006']   # Parafusos
+    
+    # Mapeamento de códigos de tipo de componente para funções de cálculo
+    CALCULADORAS_ADICIONAIS = {
+        'AC-006': calcular_parafusos_fundo_simples,  # Parafusos com regra específica
+    }
     
     # Campos necessários para o cálculo
     CAMPOS_NECESSARIOS = [
@@ -35,53 +46,70 @@ class FundoSimplesRule:
     ]
     
     @staticmethod
-    def calcular(dados, componente):
+    def calcular(dados, componente, componentes_adicionais=None):
         """
-        Calcula a quantidade de material necessária
+        Calcula a quantidade de material necessária para fundo simples
         
         Args:
             dados (dict): Dicionário com quantidade, altura, largura
-            componente (Componente): Componente selecionado
+            componente (Componente): Componente principal (MDF)
+            componentes_adicionais (list): Lista de componentes adicionais (parafusos)
             
         Returns:
             dict: Resultado do cálculo
         """
+        # Cálculo MDF (principal)
+        resultado_mdf = calcular_custo_mdf(dados, componente)
+        if resultado_mdf.get('erro'):
+            return {'erro': resultado_mdf['erro']}
+
+        def parse_float(val):
+            if isinstance(val, str):
+                return float(val.replace(',', '.'))
+            return float(val)
+
+        area_total = parse_float(resultado_mdf['quantidade_utilizada'])
         quantidade = float(dados.get('quantidade', 0))
         altura = float(dados.get('altura', 0))
         largura = float(dados.get('largura', 0))
-        
-        # Validações
-        if quantidade <= 0:
-            return {'erro': 'Quantidade deve ser maior que zero'}
-        if altura <= 0:
-            return {'erro': 'Altura deve ser maior que zero'}
-        if largura <= 0:
-            return {'erro': 'Largura deve ser maior que zero'}
-        
-        # Converter cm para metros
-        altura_m = altura / 100
-        largura_m = largura / 100
-        
-        # Calcular área total necessária
-        area_por_peca = altura_m * largura_m
-        area_total = area_por_peca * quantidade
-        
-        # Verificar se o componente tem área suficiente (se for chapa)
-        area_componente = 0
-        if componente.unidade_medida == 'QUADRADO':
-            area_componente = float(componente.altura * componente.largura)
-        
-        # Calcular quantas chapas são necessárias
-        chapas_necessarias = 0
-        if area_componente > 0:
-            chapas_necessarias = round(area_total / area_componente + 0.5)  # Arredonda para cima
-        
+
+        custo_adicionais = 0
+        detalhes_adicionais = []
+        if componentes_adicionais:
+            for comp in componentes_adicionais:
+                # Buscar a função de cálculo apropriada para o tipo do componente
+                codigo_tipo = comp.tipo_componente.codigo if hasattr(comp, 'tipo_componente') else None
+                
+                if codigo_tipo and codigo_tipo in FundoSimplesRule.CALCULADORAS_ADICIONAIS:
+                    funcao_calculo = FundoSimplesRule.CALCULADORAS_ADICIONAIS[codigo_tipo]
+                    resultado = funcao_calculo(dados, comp)
+                    
+                    if not resultado.get('erro'):
+                        custo_adicionais += parse_float(resultado['custo_total'])
+                        detalhes_adicionais.append(resultado)
+                    else:
+                        print(f"Erro ao calcular {comp.nome}: {resultado.get('erro')}")
+                else:
+                    print(f"Aviso: Componente adicional '{comp.nome}' (tipo: {codigo_tipo}) não tem calculadora definida")
+
+        custo_total = parse_float(resultado_mdf['custo_total']) + custo_adicionais
         return {
             'sucesso': True,
-            'area_por_peca': area_por_peca,
+            'area_por_peca': resultado_mdf['area_por_peca'] if 'area_por_peca' in resultado_mdf else resultado_mdf['quantidade_utilizada'],
             'area_total': area_total,
-            'chapas_necessarias': chapas_necessarias,
-            'quantidade_utilizada': area_total,
-            'unidade': 'm²',
-            'resumo': f'{quantidade}x peças de {altura}cm x {largura}cm = {area_total:.4f} m²'
+            'quantidade_utilizada': resultado_mdf['quantidade_utilizada'],
+            'unidade': resultado_mdf.get('unidade', 'm²'),
+            'custo_total': f"{custo_total:.2f}",
+            'detalhes': [
+                {
+                    'componente': componente.nome,
+                    'tipo': 'principal',
+                    'quantidade': resultado_mdf['quantidade_utilizada'],
+                    'unidade': resultado_mdf.get('unidade', 'm²'),
+                    'custo': resultado_mdf['custo_total'],
+                    'resumo': resultado_mdf['resumo']
+                },
+                *detalhes_adicionais
+            ],
+            'resumo': f"{dados.get('quantidade')}x peças de {dados.get('altura')}cm x {dados.get('largura')}cm = {resultado_mdf['quantidade_utilizada']} m²"
         }

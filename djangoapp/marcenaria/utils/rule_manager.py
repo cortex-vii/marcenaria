@@ -23,7 +23,7 @@ class RuleManager:
         code_to_file = {
             'PC-001': 'rule_base_dupla',
             'PC-002': 'rule_base_simples', 
-            'PC-003': 'rule_base_engrossada',
+            'PC-003': 'rule_engrossa',
             'PC-004': 'rule_fundo_simples',
             'PC-005': 'rule_gaveta',
             'PC-006': 'rule_lateral_dupla',
@@ -40,7 +40,7 @@ class RuleManager:
         file_to_class = {
             'rule_base_dupla': 'BaseDuplaRule',
             'rule_base_simples': 'BaseSimplesRule',
-            'rule_base_engrossada': 'BaseEngrossadaRule',
+            'rule_engrossa': 'EngrossaRule',
             'rule_fundo_simples': 'FundoSimplesRule',
             'rule_gaveta': 'GavetaRule',
             'rule_lateral_dupla': 'LateralDuplaRule',
